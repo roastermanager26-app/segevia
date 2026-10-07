@@ -1,6 +1,5 @@
-import type { JobStatus, MembershipRole } from "@segevia/shared-types";
-
-// Tipos mínimos de lectura. Se reemplazarán por los generados con `pnpm db:types`.
+import type { JobStatus, MembershipRole } from "./contracts";
+export * from "./contracts";
 
 export interface Tenant {
   id: string;

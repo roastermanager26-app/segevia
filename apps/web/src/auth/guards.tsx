@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
-import type { MembershipRole } from "@segevia/shared-types";
+import type { MembershipRole } from "../lib/types";
 import { useAuth } from "./AuthProvider";
 import { useTenant } from "../tenant/TenantProvider";
 import { ErrorState, ForbiddenState, LoadingState } from "../components/states";

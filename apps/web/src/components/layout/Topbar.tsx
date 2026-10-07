@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { ROLE_LABELS } from "@segevia/shared-types";
+import { ROLE_LABELS } from "../../lib/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { useTenant } from "../../tenant/TenantProvider";
 import { Icon, cx } from "../ui";

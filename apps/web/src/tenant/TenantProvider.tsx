@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { hasAtLeastRole, type MembershipRole } from "@segevia/shared-types";
+import { hasAtLeastRole, type MembershipRole } from "../lib/types";
 import { db } from "../lib/supabase";
 import type { Membership, Profile } from "../lib/types";
 import { useAuth } from "../auth/AuthProvider";

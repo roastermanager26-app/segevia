@@ -1,4 +1,4 @@
-import { WebEnv } from "@segevia/shared-types";
+import { WebEnv } from "./contracts";
 
 const parsed = WebEnv.safeParse({
   VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
