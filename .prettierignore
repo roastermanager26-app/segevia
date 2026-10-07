@@ -1,0 +1,6 @@
+dist
+node_modules
+pnpm-lock.yaml
+diseno_segevia_ai_sales_platform
+packages/shared-types/src/database.types.ts
+supabase/.temp

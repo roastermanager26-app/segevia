@@ -1,0 +1,178 @@
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { db } from "../lib/supabase";
+import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
+
+export function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string })?.from || "/";
+
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const client = db();
+      if (isSignUp) {
+        const { error: signUpError } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
+          },
+        });
+        if (signUpError) throw signUpError;
+      } else {
+        const { error: signInError } = await client.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) throw signInError;
+      }
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de autenticación");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: signInError } = await db().auth.signInWithPassword({
+        email: "demo@segevia.local",
+        password: "segevia-demo-2026",
+      });
+      if (signInError) throw signInError;
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `${err.message} (Asegúrate de haber ejecutado el seed en Supabase)`
+          : "Error al ingresar con usuario demo",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-space-md">
+      <Card className="max-w-md w-full flex flex-col gap-space-lg">
+        <div className="flex flex-col items-center text-center gap-space-xs">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-low text-primary mb-2">
+            <Icon name="auto_awesome" className="text-3xl" />
+          </div>
+          <h1 className="font-headline text-headline-md font-bold text-on-surface">SEGEVIA</h1>
+          <p className="text-body-sm text-on-surface-variant">Gestión comercial impulsada por IA</p>
+        </div>
+
+        <div className="flex items-center justify-center">
+          <Badge tone="human" icon="verified_user">
+            Modo Supervisión: Humano en control
+          </Badge>
+        </div>
+
+        {error && (
+          <div className="rounded-lg bg-error-container p-space-sm text-body-sm text-on-error-container flex items-center gap-2">
+            <Icon name="error" className="text-lg shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-space-md">
+          {isSignUp && (
+            <Field label="Nombre y apellido" hint="Obligatorio">
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Ej. Mariano Rossi"
+                className={inputClass}
+              />
+            </Field>
+          )}
+
+          <Field label="Correo electrónico">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@empresa.com"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Contraseña">
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className={inputClass}
+            />
+          </Field>
+
+          <Button type="submit" loading={loading} className="w-full mt-2">
+            {isSignUp ? "Crear cuenta" : "Iniciar sesión"}
+          </Button>
+        </form>
+
+        <div className="flex flex-col gap-space-sm pt-space-xs border-t border-hairline">
+          <Button
+            variant="secondary"
+            icon="bolt"
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="w-full"
+          >
+            Acceso Rápido con Demo Local
+          </Button>
+
+          <div className="flex justify-center text-body-sm text-on-surface-variant pt-2">
+            {isSignUp ? (
+              <span>
+                ¿Ya tienes cuenta?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Inicia sesión
+                </button>
+              </span>
+            ) : (
+              <span>
+                ¿No tienes cuenta?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(true)}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Registrarse
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
