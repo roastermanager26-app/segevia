@@ -6,6 +6,7 @@ import { TenantProvider } from "./tenant/TenantProvider";
 import { RequireAuth, RequireTenant } from "./auth/guards";
 import { AppShell } from "./components/layout/AppShell";
 import { EnvSetup } from "./pages/EnvSetup";
+import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
 import { Onboarding } from "./pages/Onboarding";
 import { Dashboard } from "./pages/Dashboard";
@@ -38,6 +39,8 @@ export function App() {
           <BrowserRouter>
             <Routes>
               {/* Rutas Públicas */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={<Login />} />
 
               {/* Rutas que requieren autenticación */}
@@ -47,7 +50,8 @@ export function App() {
                 {/* Rutas que requieren organización activa y usan el shell */}
                 <Route element={<RequireTenant />}>
                   <Route element={<AppShell />}>
-                    <Route index element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/app" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/content-studio" element={<ContentStudio />} />
                     <Route path="/inbox" element={<Inbox />} />
                     <Route path="/agentes" element={<Agents />} />

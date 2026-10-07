@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { db } from "../lib/supabase";
 import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
 
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string })?.from || "/";
+  const from = (location.state as { from?: string })?.from || "/dashboard";
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -146,7 +146,10 @@ export function Login() {
             Acceso Rápido con Demo Local
           </Button>
 
-          <div className="flex justify-center text-body-sm text-on-surface-variant pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between text-body-sm text-on-surface-variant gap-2 pt-2">
+            <Link to="/" className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
+              <Icon name="arrow_back" className="text-base" /> Volver al sitio
+            </Link>
             {isSignUp ? (
               <span>
                 ¿Ya tienes cuenta?{" "}

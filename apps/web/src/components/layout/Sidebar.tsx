@@ -7,7 +7,7 @@ import { useActiveTenant } from "../../tenant/TenantProvider";
 import { Icon, cx } from "../ui";
 
 export const NAV_ITEMS = [
-  { to: "/", label: "Inicio", icon: "dashboard", end: true },
+  { to: "/dashboard", label: "Inicio", icon: "dashboard", end: true },
   { to: "/content-studio", label: "Content Studio", icon: "auto_fix_high" },
   { to: "/inbox", label: "Inbox", icon: "forum" },
   { to: "/agentes", label: "Agentes", icon: "smart_toy" },

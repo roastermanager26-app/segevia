@@ -60,7 +60,7 @@ function TenantSwitcher() {
               onClick={() => {
                 setActiveTenant(m.tenant.id);
                 setOpen(false);
-                navigate("/");
+                navigate("/dashboard");
               }}
               className={cx(
                 "flex w-full items-center justify-between rounded-lg px-space-sm py-space-sm text-left hover:bg-surface-container-low",
