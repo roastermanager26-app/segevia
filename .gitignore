@@ -28,6 +28,7 @@ pnpm-debug.log*
 # Vercel y Supabase locales
 .vercel
 .supabase/local-db
+supabase/.temp/
 
 # Sistema operativo y editores
 .DS_Store

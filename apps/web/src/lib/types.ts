@@ -20,6 +20,29 @@ export interface Profile {
   avatar_url: string | null;
 }
 
+export interface CompanyProfile {
+  tenant_id: string;
+  legal_name: string | null;
+  tax_id: string | null;
+  address_street: string | null;
+  address_number: string | null;
+  city: string | null;
+  province: string | null;
+  country: string | null;
+  postal_code: string | null;
+  phone: string | null;
+  website_url: string | null;
+  linkedin_url: string | null;
+  contact_email: string | null;
+  telegram_handle: string | null;
+  instagram_handle: string | null;
+  description: string | null;
+  offerings: string | null;
+  logo_path: string | null;
+  primary_color: string;
+  secondary_color: string;
+}
+
 export interface BudgetStatus {
   budget_id: string;
   scope: "tenant" | "agent" | "channel";

@@ -38,7 +38,9 @@ export function Onboarding() {
       if (data?.id) {
         setActiveTenant(data.id);
       }
-      navigate("/dashboard", { replace: true });
+      // La organización existe, pero todavía falta el perfil comercial que
+      // alimenta a los agentes y al Content Studio.
+      navigate("/configuracion?setup=company", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear la organización");
     } finally {
