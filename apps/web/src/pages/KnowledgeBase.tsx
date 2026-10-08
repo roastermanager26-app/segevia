@@ -1,186 +1,39 @@
-import { useState } from "react";
-import { useAuth } from "../auth/AuthProvider";
-import { useActiveTenant } from "../tenant/TenantProvider";
-import { isDemoTenant } from "../lib/demo";
-import { Badge, Button, Card, Icon } from "../components/ui";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
+import { db } from "../lib/supabase";
+import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
 
-interface DemoDoc {
-  id: string;
-  title: string;
-  detail: string;
-  icon: string;
-}
-
-const DEMO_DOCS: DemoDoc[] = [
-  {
-    id: "1",
-    title: "Tarifario Servicios Q4 2024.pdf",
-    detail: "24 chunks vectorizados · Actualizado hace 2 días",
-    icon: "description",
-  },
-  {
-    id: "2",
-    title: "Catalogo_Maquinaria_Industrial.pdf",
-    detail: "118 chunks vectorizados · Actualizado hace 1 semana",
-    icon: "description",
-  },
-  {
-    id: "3",
-    title: "Preguntas Frecuentes y Garantías (FAQ)",
-    detail: "15 pares de preguntas y respuestas verificadas",
-    icon: "help",
-  },
-];
+type Category = "product" | "service" | "pricing" | "company" | "faq" | "case_study" | "legal" | "other";
+type Source = { id: string; title: string; description: string | null; category: Category; tags: string[]; kind: "file" | "url"; status: string; chunks_count: number; source_url: string | null; storage_path: string | null; updated_at: string; last_error: string | null };
+const categories: Array<[Category, string]> = [["product", "Producto"], ["service", "Servicio"], ["pricing", "Precios y condiciones"], ["company", "Información institucional"], ["faq", "Preguntas frecuentes"], ["case_study", "Caso de éxito"], ["legal", "Política / legal"], ["other", "Otro"]];
+const statusTone: Record<string, "ai" | "verified" | "review" | "error" | "neutral"> = { indexed: "verified", review: "review", error: "error", processing: "ai", draft: "neutral", archived: "neutral" };
+const statusLabel: Record<string, string> = { indexed: "Indexado", review: "Para revisión", error: "Error", processing: "Procesando", draft: "Borrador", archived: "Archivado" };
 
 export function KnowledgeBase() {
-  const { session } = useAuth();
-  const { tenant } = useActiveTenant();
-  const isDemo = isDemoTenant(tenant, session?.user?.email);
-
-  const [testQuery, setTestQuery] = useState("");
-  const [testResult, setTestResult] = useState<string | null>(null);
-
-  const handleTestSearch = () => {
-    if (!testQuery.trim()) return;
-    if (isDemo) {
-      setTestResult(
-        "Fragmento encontrado [Tarifario Servicios Q4 2024.pdf #chunk-4]: 'El plazo de entrega estándar en planta es de 72 a 96 horas hábiles tras la confirmación de la orden de compra.' (Similitud semántica: 94.2%)"
-      );
-    } else {
-      setTestResult(
-        `Búsqueda en ${tenant.name}: No se encontraron fragmentos coincidentes porque aún no has indexado documentos en esta organización.`
-      );
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-space-lg pb-12">
-      {isDemo && (
-        <div className="flex items-center justify-between p-3.5 px-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-body-sm">
-          <div className="flex items-center gap-2.5">
-            <Icon name="info" className="text-amber-600 text-lg shrink-0" />
-            <span>
-              <strong>Modo Demostración:</strong> Mostrando fuentes de conocimiento ficticias indexadas.
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-space-sm">
-            <span className="font-label-sm text-xs font-semibold text-secondary bg-secondary-fixed/40 px-2 py-0.5 rounded-full uppercase">
-              Release 1 · Base de Conocimiento
-            </span>
-          </div>
-          <h1 className="font-headline text-headline-lg font-bold text-on-surface">Knowledge Base</h1>
-          <p className="text-body-md text-on-surface-variant">
-            Conocimiento verificado de productos, servicios y condiciones comerciales para tus agentes IA en {tenant.name}.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          icon="upload_file"
-          onClick={() => alert("Módulo de subida directa: selecciona PDFs o TXTs para iniciar la vectorización RAG.")}
-        >
-          Subir documento
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-        <Card className="lg:col-span-2 flex flex-col gap-space-md">
-          <div className="flex items-center justify-between border-b border-hairline pb-space-sm">
-            <h2 className="font-headline text-headline-sm font-bold text-on-surface">
-              Fuentes Indexadas
-            </h2>
-            <Badge tone="verified" icon="check_circle">
-              {isDemo ? "RAG Activo" : "RAG Preparado"}
-            </Badge>
-          </div>
-
-          {isDemo ? (
-            <div className="flex flex-col gap-space-sm">
-              {DEMO_DOCS.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low border border-hairline"
-                >
-                  <div className="flex items-center gap-space-md">
-                    <div className="w-10 h-10 rounded-xl bg-surface-container-lowest flex items-center justify-center text-primary">
-                      <Icon name={doc.icon} className="text-xl" />
-                    </div>
-                    <div>
-                      <h4 className="text-label-md font-bold text-on-surface">{doc.title}</h4>
-                      <span className="text-body-sm text-on-surface-variant">{doc.detail}</span>
-                    </div>
-                  </div>
-                  <Badge tone="verified">Indexado</Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
-                <Icon name="library_books" className="text-3xl" />
-              </div>
-              <div className="flex flex-col gap-1 max-w-md">
-                <h3 className="font-headline text-headline-sm font-bold text-on-surface">
-                  Tu base de conocimiento está vacía
-                </h3>
-                <p className="text-body-sm text-on-surface-variant">
-                  Sube tus listas de precios, catálogos técnicos o manuales en PDF/TXT. Tus agentes comerciales utilizarán únicamente esta información verificada para responder a tus clientes.
-                </p>
-              </div>
-              <Button
-                variant="primary"
-                icon="upload_file"
-                className="mt-1"
-                onClick={() => alert("Elige un archivo PDF o catálogo para indexar en tu organización.")}
-              >
-                Subir primer documento
-              </Button>
-            </div>
-          )}
-        </Card>
-
-        {/* Panel Probá lo que sabe tu agente */}
-        <Card className="flex flex-col gap-space-md">
-          <div className="flex items-center gap-2 border-b border-hairline pb-space-sm">
-            <Icon name="psychology" className="text-primary text-xl" />
-            <h2 className="font-headline text-headline-sm font-bold text-on-surface">
-              Probá lo que sabe tu agente
-            </h2>
-          </div>
-          <p className="text-body-sm text-on-surface-variant">
-            Haz una consulta comercial para comprobar las citas y fragmentos que recupera el RAG.
-          </p>
-          <div className="relative">
-            <input
-              type="text"
-              value={testQuery}
-              onChange={(e) => setTestQuery(e.target.value)}
-              placeholder="Ej. ¿Cuál es el plazo de entrega del generador?"
-              className="w-full rounded-lg border border-hairline bg-surface-container-low px-3 py-2 text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-          <Button
-            variant="secondary"
-            icon="search"
-            className="w-full"
-            onClick={handleTestSearch}
-          >
-            Verificar respuesta y citas
-          </Button>
-
-          {testResult && (
-            <div className="p-3 rounded-lg bg-surface-container-low border border-hairline text-body-sm text-on-surface">
-              <p className="font-semibold text-primary mb-1">Resultado de la verificación:</p>
-              <p className="text-xs text-on-surface-variant leading-relaxed">{testResult}</p>
-            </div>
-          )}
-        </Card>
-      </div>
-    </div>
-  );
+  const { tenant } = useActiveTenant(); const { can } = useTenant(); const qc = useQueryClient();
+  const [open, setOpen] = useState(false); const [kind, setKind] = useState<"file" | "url">("file"); const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState(""); const [description, setDescription] = useState(""); const [category, setCategory] = useState<Category>("product"); const [tags, setTags] = useState(""); const [language, setLanguage] = useState("es"); const [effectiveFrom, setEffectiveFrom] = useState(""); const [url, setUrl] = useState(""); const [error, setError] = useState<string | null>(null);
+  const { data: sources = [], isLoading } = useQuery({ queryKey: ["kb-sources", tenant.id], queryFn: async () => { const { data, error } = await db().from("kb_sources").select("id,title,description,category,tags,kind,status,chunks_count,source_url,storage_path,updated_at,last_error").eq("tenant_id", tenant.id).order("updated_at", { ascending: false }); if (error) throw error; return (data ?? []) as Source[]; } });
+  const reset = () => { setOpen(false); setFile(null); setTitle(""); setDescription(""); setCategory("product"); setTags(""); setLanguage("es"); setEffectiveFrom(""); setUrl(""); setError(null); };
+  const upload = useMutation({ mutationFn: async () => {
+    if (!title.trim()) throw new Error("Indicá un título para esta fuente.");
+    if (kind === "file" && !file) throw new Error("Seleccioná un archivo.");
+    if (kind === "url" && !/^https?:\/\//i.test(url.trim())) throw new Error("Ingresá una URL pública válida.");
+    let storagePath: string | null = null; let mime: string | null = null; let size: number | null = null;
+    if (file) { const allowed = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain", "text/markdown"]; if (!allowed.includes(file.type) || file.size > 20 * 1024 * 1024) throw new Error("Solo PDF, DOCX, TXT o Markdown de hasta 20 MB."); storagePath = `${tenant.id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, "_")}`; mime = file.type; size = file.size; const { error } = await db().storage.from("kb-documents").upload(storagePath, file); if (error) throw error; }
+    const { data, error: insertError } = await db().from("kb_sources").insert({ tenant_id: tenant.id, kind, title: title.trim(), description: description.trim() || null, category, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), language, effective_from: effectiveFrom || null, source_url: kind === "url" ? url.trim() : null, storage_path: storagePath, mime_type: mime, file_size_bytes: size, status: "processing" }).select("id").single();
+    if (insertError) throw insertError;
+    const { error: jobError } = await db().rpc("enqueue_job", { p_tenant_id: tenant.id, p_type: "kb.ingest_source", p_payload: { sourceId: data.id }, p_idempotency_key: `kb.ingest:${data.id}` });
+    if (jobError) throw jobError;
+  }, onSuccess: () => { void qc.invalidateQueries({ queryKey: ["kb-sources", tenant.id] }); reset(); }, onError: (e) => setError(e instanceof Error ? e.message : "No se pudo cargar la fuente.") });
+  const review = useMutation({ mutationFn: async (source: Source) => { const { error } = await db().from("kb_sources").update({ status: "indexed", last_error: null }).eq("id", source.id).eq("tenant_id", tenant.id).eq("status", "review"); if (error) throw error; }, onSuccess: () => void qc.invalidateQueries({ queryKey: ["kb-sources", tenant.id] }) });
+  const remove = useMutation({ mutationFn: async (source: Source) => { if (source.storage_path) { const { error: storageError } = await db().storage.from("kb-documents").remove([source.storage_path]); if (storageError) throw storageError; } const { error } = await db().from("kb_sources").delete().eq("id", source.id).eq("tenant_id", tenant.id); if (error) throw error; }, onSuccess: () => void qc.invalidateQueries({ queryKey: ["kb-sources", tenant.id] }) });
+  const indexed = useMemo(() => sources.filter((s) => s.status === "indexed").length, [sources]);
+  return <div className="flex flex-col gap-space-lg pb-12">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md"><div><span className="font-label-sm text-xs font-semibold text-secondary bg-secondary-fixed/40 px-2 py-0.5 rounded-full uppercase">Release 1 · Base de Conocimiento</span><h1 className="mt-2 font-headline text-headline-lg font-bold">Knowledge Base</h1><p className="text-body-md text-on-surface-variant">Fuentes verificadas y aisladas para los agentes habilitados de {tenant.name}.</p></div><Button icon="upload_file" disabled={!can("admin")} onClick={() => setOpen(true)}>Subir conocimiento</Button></div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter"><Card className="lg:col-span-2 flex flex-col gap-space-md"><div className="flex items-center justify-between border-b border-hairline pb-space-sm"><h2 className="font-headline text-headline-sm font-bold">Fuentes de conocimiento</h2><Badge tone="verified" icon="check_circle">{indexed} indexadas</Badge></div>{isLoading ? <p className="text-body-sm text-outline">Cargando fuentes…</p> : sources.length === 0 ? <div className="py-12 text-center"><Icon name="library_books" className="text-4xl text-primary" /><h3 className="font-headline text-headline-sm font-bold mt-3">Tu base de conocimiento está vacía</h3><p className="text-body-sm text-on-surface-variant mt-1">Subí documentos o agregá una página web para alimentar a los agentes habilitados.</p></div> : <div className="flex flex-col gap-space-sm">{sources.map((s) => <div key={s.id} className="flex items-center justify-between gap-3 p-space-md rounded-xl bg-surface-container-low border border-hairline"><div className="flex min-w-0 items-center gap-space-md"><Icon name={s.kind === "url" ? "language" : "description"} className="text-primary" /><div className="min-w-0"><p className="font-semibold truncate">{s.title}</p><p className="text-body-sm text-on-surface-variant">{categories.find(([key]) => key === s.category)?.[1]} · {s.chunks_count} fragmentos{s.last_error ? ` · ${s.last_error}` : ""}</p></div></div><div className="flex shrink-0 items-center gap-2">{s.status === "review" && can("admin") && <Button variant="secondary" loading={review.isPending} onClick={() => review.mutate(s)} icon="verified">Aprobar</Button>}<Badge tone={statusTone[s.status] ?? "neutral"}>{statusLabel[s.status] ?? s.status}</Badge>{can("admin") && <button className="rounded-md p-2 text-outline hover:bg-error-container hover:text-error" title="Eliminar definitivamente" disabled={remove.isPending} onClick={() => { if (window.confirm(`¿Eliminar definitivamente “${s.title}” y sus fragmentos?`)) remove.mutate(s); }}><Icon name="delete" /></button>}</div></div>)}</div>}</Card>
+    <Card className="flex flex-col gap-space-md"><div className="flex items-center gap-2 border-b border-hairline pb-space-sm"><Icon name="psychology" className="text-primary"/><h2 className="font-headline text-headline-sm font-bold">Probá lo que sabe tu agente</h2></div><p className="text-body-sm text-on-surface-variant">Las búsquedas RAG estarán disponibles cuando haya una fuente indexada y un modelo de embeddings configurado.</p><Badge tone={indexed ? "verified" : "neutral"}>{indexed ? "Listo para búsqueda" : "Sin fuentes indexadas"}</Badge></Card></div>
+    {open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-space-md"><Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"><div className="flex items-center justify-between border-b border-hairline pb-space-md"><div><h2 className="font-headline text-headline-md font-bold">Agregar conocimiento</h2><p className="text-body-sm text-on-surface-variant">La fuente será privada para esta organización.</p></div><button onClick={reset} className="p-2"><Icon name="close"/></button></div><div className="mt-space-lg flex flex-col gap-space-md"><div className="grid grid-cols-2 rounded-lg bg-surface-container-low p-1"><button onClick={() => setKind("file")} className={`rounded-md py-2 text-label-md ${kind === "file" ? "bg-white shadow-sm text-primary" : "text-outline"}`}>Archivo</button><button onClick={() => setKind("url")} className={`rounded-md py-2 text-label-md ${kind === "url" ? "bg-white shadow-sm text-primary" : "text-outline"}`}>Página web</button></div>{kind === "file" ? <Field label="Archivo *" hint="PDF, DOCX, TXT o MD · hasta 20 MB"><input type="file" accept=".pdf,.docx,.txt,.md,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => { const next = e.target.files?.[0] ?? null; setFile(next); if (next && !title) setTitle(next.name.replace(/\.[^.]+$/, "")); }} className={inputClass}/></Field> : <Field label="URL pública *"><input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://empresa.com/producto" className={inputClass}/></Field>}<Field label="Título *"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass}/></Field><Field label="Descripción"><textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputClass} h-20 py-2`} /></Field><div className="grid md:grid-cols-2 gap-space-md"><Field label="Categoría"><select value={category} onChange={(e) => setCategory(e.target.value as Category)} className={inputClass}>{categories.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field><Field label="Etiquetas" hint="Separadas por coma"><input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="industria, catálogo, 2026"/></Field><Field label="Idioma"><select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputClass}><option value="es">Español</option><option value="en">Inglés</option><option value="pt">Portugués</option><option value="other">Otro</option></select></Field><Field label="Vigente desde"><input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} className={inputClass}/></Field></div>{error && <p className="text-body-sm text-error">{error}</p>}<div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={reset}>Cancelar</Button><Button type="button" loading={upload.isPending} onClick={() => upload.mutate()} icon="cloud_upload">Guardar e indexar</Button></div></div></Card></div>}
+  </div>;
 }

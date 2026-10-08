@@ -28,6 +28,7 @@ export async function processBatch(db: SupabaseClient, opts: WorkerOptions): Pro
     jobs.map(async (job) => {
       const ctx = {
         job,
+        db,
         log: (msg: string, extra?: Record<string, unknown>) =>
           log("info", msg, { job_id: job.id, tenant_id: job.tenant_id, type: job.type, ...extra }),
       };

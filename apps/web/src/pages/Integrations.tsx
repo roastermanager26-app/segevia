@@ -1,227 +1,29 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
 import { db } from "../lib/supabase";
-import { useAuth } from "../auth/AuthProvider";
-import { useActiveTenant } from "../tenant/TenantProvider";
-import { isDemoTenant } from "../lib/demo";
-import { Badge, Button, Card, Icon } from "../components/ui";
+import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
 
-interface BaseIntegration {
-  provider: string;
-  name: string;
-  category: "LLM" | "Canal" | "Búsqueda e Imagen" | "CRM" | "Telefonía";
-  description: string;
-  defaultDemoStatus: "connected" | "disconnected";
-}
-
-const BASE_INTEGRATIONS: BaseIntegration[] = [
-  {
-    provider: "openrouter",
-    name: "OpenRouter Gateway",
-    category: "LLM",
-    description: "Gateway multimodelo unificado (Claude 3.5 Sonnet, GPT-4o, Gemini 2.5).",
-    defaultDemoStatus: "connected",
-  },
-  {
-    provider: "google",
-    name: "Google Gemini 2.5 Flash",
-    category: "LLM",
-    description: "Modelo directo de ultra baja latencia para RAG y respuestas rápidas.",
-    defaultDemoStatus: "connected",
-  },
-  {
-    provider: "tavily",
-    name: "Tavily Search API",
-    category: "Búsqueda e Imagen",
-    description: "Búsqueda y rastreo de tendencias del sector en tiempo real para Content Studio.",
-    defaultDemoStatus: "connected",
-  },
-  {
-    provider: "fal",
-    name: "Fal.ai (Flux Pro)",
-    category: "Búsqueda e Imagen",
-    description: "Motor de síntesis visual hiperrealista para publicaciones de LinkedIn e Instagram.",
-    defaultDemoStatus: "connected",
-  },
-  {
-    provider: "meta",
-    name: "WhatsApp Cloud API & Instagram",
-    category: "Canal",
-    description: "Conexión a Meta Business Manager para conversaciones automáticas y publicaciones.",
-    defaultDemoStatus: "disconnected",
-  },
-  {
-    provider: "linkedin",
-    name: "LinkedIn API",
-    category: "Canal",
-    description: "Publicación directa y métricas de alcance en perfiles de empresa o personales.",
-    defaultDemoStatus: "disconnected",
-  },
-  {
-    provider: "crm",
-    name: "CRM Propietario / Hubspot",
-    category: "CRM",
-    description: "Sincronización bidireccional de leads, estados BANT y notas de interacciones.",
-    defaultDemoStatus: "disconnected",
-  },
-  {
-    provider: "vapi",
-    name: "Vapi / Retell (Telefonía IA)",
-    category: "Telefonía",
-    description: "Infraestructura para llamadas entrantes y campañas de calificación por voz.",
-    defaultDemoStatus: "disconnected",
-  },
-];
+type Capability = "text" | "image" | "embedding";
+type Model = { id: string; name: string; pricing?: { prompt?: string; image?: string } };
+const groups = [{ title: "Redes sociales", icon: "share", items: "LinkedIn, Instagram, X, Facebook, TikTok" }, { title: "CRMs", icon: "hub", items: "HubSpot, Monday, CRM propietario" }, { title: "Telefonía", icon: "call", items: "Twilio y otros" }, { title: "Storage", icon: "cloud", items: "Google Drive, OneDrive, Dropbox" }, { title: "Mensajería", icon: "forum", items: "Telegram, Slack, WhatsApp Business, Teams, SMTP" }];
+const capLabel: Record<Capability, string> = { text: "Texto", image: "Imágenes", embedding: "Embeddings" };
 
 export function Integrations() {
-  const { session } = useAuth();
-  const { tenant } = useActiveTenant();
-  const queryClient = useQueryClient();
-  const isDemo = isDemoTenant(tenant, session?.user?.email);
-
-  const [savingProvider, setSavingProvider] = useState<string | null>(null);
-
-  // Leer estado real de integraciones en Supabase
-  const { data: dbIntegrations = [], isLoading } = useQuery({
-    queryKey: ["tenant", tenant.id, "integrations"],
-    queryFn: async () => {
-      const { data, error } = await db()
-        .from("integrations")
-        .select("*")
-        .eq("tenant_id", tenant.id);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Mutación para conectar / desconectar en Supabase
-  const toggleMutation = useMutation({
-    mutationFn: async ({
-      provider,
-      name,
-      currentStatus,
-    }: {
-      provider: string;
-      name: string;
-      currentStatus: string;
-    }) => {
-      setSavingProvider(provider);
-      const newStatus = currentStatus === "connected" ? "disconnected" : "connected";
-
-      const { error } = await db()
-        .from("integrations")
-        .upsert(
-          {
-            tenant_id: tenant.id,
-            provider,
-            display_name: name,
-            status: newStatus,
-            last_synced_at: newStatus === "connected" ? new Date().toISOString() : null,
-          },
-          { onConflict: "tenant_id,provider,external_account_id" }
-        );
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tenant", tenant.id, "integrations"] });
-      setSavingProvider(null);
-    },
-    onError: (err) => {
-      alert("Error al actualizar integración: " + (err instanceof Error ? err.message : "Desconocido"));
-      setSavingProvider(null);
-    },
-  });
-
-  return (
-    <div className="flex flex-col gap-space-lg pb-12">
-      {isDemo && (
-        <div className="flex items-center justify-between p-3.5 px-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-body-sm">
-          <div className="flex items-center gap-2.5">
-            <Icon name="info" className="text-amber-600 text-lg shrink-0" />
-            <span>
-              <strong>Modo Demostración:</strong> Mostrando configuración de integraciones precargadas de prueba.
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-space-sm">
-            <span className="font-label-sm text-xs font-semibold text-secondary bg-secondary-fixed/40 px-2 py-0.5 rounded-full uppercase">
-              Release 0 · Conectores de Ecosistema
-            </span>
-          </div>
-          <h1 className="font-headline text-headline-lg font-bold text-on-surface">Integraciones</h1>
-          <p className="text-body-md text-on-surface-variant">
-            Conecta canales de mensajería, pasarelas de LLM y herramientas de datos para tu organización {tenant.name}.
-          </p>
-        </div>
-
-        <Badge tone="human" icon="shield">
-          Cifrado Vault Seguro
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-        {BASE_INTEGRATIONS.map((item) => {
-          const dbRecord = dbIntegrations.find((r) => r.provider === item.provider);
-          const isConnected = isDemo
-            ? item.defaultDemoStatus === "connected"
-            : dbRecord
-            ? dbRecord.status === "connected"
-            : false;
-
-          const isPending = savingProvider === item.provider;
-
-          return (
-            <Card key={item.provider} className="flex flex-col justify-between gap-space-md">
-              <div className="flex flex-col gap-space-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-label-sm font-semibold uppercase text-outline">
-                    {item.category}
-                  </span>
-                  {isConnected ? (
-                    <Badge tone="verified" icon="check_circle">
-                      Conectado
-                    </Badge>
-                  ) : (
-                    <Badge tone="neutral">Desconectado</Badge>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-headline text-headline-sm font-bold text-on-surface">
-                    {item.name}
-                  </h3>
-                  <p className="text-body-sm text-on-surface-variant">{item.description}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-space-xs border-t border-hairline">
-                <span className="text-body-sm text-outline">
-                  {isConnected ? "Sincronización activa" : "Sin credencial asociada"}
-                </span>
-
-                <Button
-                  variant={isConnected ? "secondary" : "primary"}
-                  loading={isPending}
-                  onClick={() => {
-                    toggleMutation.mutate({
-                      provider: item.provider,
-                      name: item.name,
-                      currentStatus: isConnected ? "connected" : "disconnected",
-                    });
-                  }}
-                >
-                  {isConnected ? "Desconectar" : "Conectar"}
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
-  );
+  const { tenant } = useActiveTenant(); const { can } = useTenant(); const qc = useQueryClient();
+  const [open, setOpen] = useState(false); const [token, setToken] = useState(""); const [integrationId, setIntegrationId] = useState<string | null>(null); const [models, setModels] = useState<Record<Capability, Model[]>>({ text: [], image: [], embedding: [] }); const [error, setError] = useState<string | null>(null);
+  const { data: integrations = [] } = useQuery({ queryKey: ["tenant", tenant.id, "integrations"], queryFn: async () => { const { data, error } = await db().from("integrations").select("*").eq("tenant_id", tenant.id); if (error) throw error; return data ?? []; } });
+  const { data: configs = [] } = useQuery({ queryKey: ["llm-model-configs", tenant.id], queryFn: async () => { const { data, error } = await db().from("llm_model_configs").select("*").eq("tenant_id", tenant.id); if (error) throw error; return data ?? []; } });
+  const openRouter = integrations.find((i) => i.provider === "openrouter");
+  const callModels = async (capability: Capability, id?: string, providerToken?: string) => { const { data, error: invokeError } = await db().functions.invoke("llm-models", { body: { tenantId: tenant.id, action: providerToken ? "connect" : "list", provider: "openrouter", integrationId: id, token: providerToken, capability } }); if (invokeError) throw invokeError; if (data?.error) throw new Error(data.error); return data as { integrationId: string; models: Model[] }; };
+  const connect = useMutation({ mutationFn: async () => { const first = await callModels("text", integrationId ?? undefined, token || undefined); const id = first.integrationId; const [image, embedding] = await Promise.all([callModels("image", id), callModels("embedding", id)]); return { id, text: first.models, image: image.models, embedding: embedding.models }; }, onSuccess: (data) => { setIntegrationId(data.id); setModels({ text: data.text, image: data.image, embedding: data.embedding }); setToken(""); void qc.invalidateQueries({ queryKey: ["tenant", tenant.id, "integrations"] }); }, onError: (e) => setError(e instanceof Error ? e.message : "No se pudo conectar OpenRouter") });
+  const refreshCatalog = useMutation({ mutationFn: async () => { const id = integrationId ?? openRouter?.id; if (!id) throw new Error("Conectá OpenRouter primero"); const [text, image, embedding] = await Promise.all([callModels("text", id), callModels("image", id), callModels("embedding", id)]); return { id, text: text.models, image: image.models, embedding: embedding.models }; }, onSuccess: (data) => { setIntegrationId(data.id); setModels({ text: data.text, image: data.image, embedding: data.embedding }); }, onError: (e) => setError(e instanceof Error ? e.message : "No se pudo actualizar el catálogo") });
+  const choose = useMutation({ mutationFn: async ({ capability, slot, model }: { capability: Capability; slot: "primary" | "backup"; model: Model | null }) => { if (!model) { const existing = configs.find((c) => c.capability === capability && c.slot === slot); if (existing) { const { error } = await db().from("llm_model_configs").delete().eq("id", existing.id); if (error) throw error; } return; } const id = integrationId ?? openRouter?.id; if (!id) throw new Error("Conectá OpenRouter primero"); const { error } = await db().from("llm_model_configs").upsert({ tenant_id: tenant.id, integration_id: id, capability, slot, model_id: model.id, model_name: model.name, is_active: true }, { onConflict: "tenant_id,capability,slot" }); if (error) throw error; }, onSuccess: () => void qc.invalidateQueries({ queryKey: ["llm-model-configs", tenant.id] }), onError: (e) => setError(e instanceof Error ? e.message : "No se pudo guardar el modelo") });
+  const modalClose = () => { setOpen(false); setError(null); setToken(""); };
+  return <div className="flex flex-col gap-space-lg pb-12"><div><span className="font-label-sm text-xs font-semibold text-secondary bg-secondary-fixed/40 px-2 py-0.5 rounded-full uppercase">Integraciones</span><h1 className="mt-2 font-headline text-headline-lg font-bold">Ecosistema conectado</h1><p className="text-body-md text-on-surface-variant">Conectá proveedores por categoría. Las credenciales siempre se almacenan cifradas.</p></div>
+    <Card className="flex flex-col gap-space-lg"><div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md border-b border-hairline pb-space-md"><div><div className="flex gap-2 items-center"><Icon name="neurology" className="text-primary"/><h2 className="font-headline text-headline-md font-bold">Modelos de IA</h2></div><p className="text-body-sm text-on-surface-variant mt-1">Texto, imágenes y embeddings con principal y respaldo independientes.</p></div>{openRouter?.status === "connected" ? <div className="flex items-center gap-2"><Badge tone="verified" icon="check_circle">OpenRouter conectado</Badge><Button variant="secondary" loading={refreshCatalog.isPending} disabled={!can("admin")} icon="refresh" onClick={() => refreshCatalog.mutate()}>Actualizar catálogo</Button></div> : <Button disabled={!can("admin")} icon="key" onClick={() => setOpen(true)}>Conectar OpenRouter</Button>}</div>
+      {(["text", "image", "embedding"] as Capability[]).map((cap) => { const primary = configs.find((c) => c.capability === cap && c.slot === "primary"); const backup = configs.find((c) => c.capability === cap && c.slot === "backup"); const list = models[cap]; return <div key={cap} className="grid md:grid-cols-[160px_1fr_1fr] gap-space-md rounded-xl bg-surface-container-low p-space-md"><div><p className="font-semibold">{capLabel[cap]}</p><p className="text-body-sm text-on-surface-variant">{cap === "embedding" ? "RAG y búsqueda" : cap === "image" ? "Assets de contenido" : "Agentes y contenido"}</p></div>{(["primary", "backup"] as const).map((slot) => { const selected = slot === "primary" ? primary : backup; return <Field key={slot} label={slot === "primary" ? "Principal" : "Backup opcional"}><select disabled={!openRouter || !can("admin") || choose.isPending} value={selected?.model_id ?? ""} onChange={(e) => choose.mutate({ capability: cap, slot, model: list.find((m) => m.id === e.target.value) ?? null })} className={inputClass}><option value="">{openRouter ? "Sin modelo" : "Conectá OpenRouter"}</option>{list.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>{selected?.health === "unhealthy" && <span className="text-body-sm text-error">No responde: se usará el backup.</span>}</Field>; })}</div>; })}</Card>
+    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-gutter">{groups.map((g) => <Card key={g.title} className="flex flex-col gap-space-sm opacity-75"><div className="flex justify-between"><Icon name={g.icon} className="text-outline"/><Badge tone="neutral">Próximamente</Badge></div><h2 className="font-headline text-headline-sm font-bold">{g.title}</h2><p className="text-body-sm text-on-surface-variant">{g.items}</p></Card>)}</div>
+    {open && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-space-md"><Card className="w-full max-w-lg"><div className="flex justify-between border-b border-hairline pb-space-md"><div><h2 className="font-headline text-headline-md font-bold">Conectar OpenRouter</h2><p className="text-body-sm text-on-surface-variant">El token se valida y almacena cifrado; nunca se vuelve a mostrar.</p></div><button onClick={modalClose}><Icon name="close"/></button></div><div className="mt-space-lg flex flex-col gap-space-md"><Field label="API key de OpenRouter"><input type="password" value={token} onChange={(e) => setToken(e.target.value)} className={inputClass} placeholder="sk-or-v1-…"/></Field>{error && <p className="text-body-sm text-error">{error}</p>}<div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={modalClose}>Cancelar</Button><Button type="button" loading={connect.isPending} onClick={() => connect.mutate()} disabled={!token}>Validar y cargar modelos</Button></div></div></Card></div>}
+  </div>;
 }

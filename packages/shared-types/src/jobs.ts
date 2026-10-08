@@ -11,6 +11,7 @@ export type JobStatus = z.infer<typeof JobStatus>;
  */
 export const JobPayloads = {
   "system.ping": z.object({ message: z.string().max(200) }),
+  "kb.ingest_source": z.object({ sourceId: z.string().uuid() }),
 } as const;
 
 export type JobType = keyof typeof JobPayloads;
