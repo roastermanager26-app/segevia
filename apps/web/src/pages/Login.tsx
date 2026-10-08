@@ -14,16 +14,18 @@ export function Login() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSignupSuccess(null);
     setLoading(true);
 
     try {
       const client = db();
       if (isSignUp) {
-        const { error: signUpError } = await client.auth.signUp({
+        const { data: signUpData, error: signUpError } = await client.auth.signUp({
           email,
           password,
           options: {
@@ -33,6 +35,13 @@ export function Login() {
           },
         });
         if (signUpError) throw signUpError;
+
+        if (!signUpData.session) {
+          setSignupSuccess(
+            `¡Cuenta creada! Hemos enviado un correo de confirmación de SEGEVIA a ${email}. Revisa tu bandeja de entrada para verificar tu cuenta e ingresar al dashboard.`
+          );
+          return;
+        }
       } else {
         const { error: signInError } = await client.auth.signInWithPassword({
           email,
@@ -50,6 +59,7 @@ export function Login() {
 
   const handleDemoLogin = async () => {
     setError(null);
+    setSignupSuccess(null);
     setLoading(true);
     try {
       const { error: signInError } = await db().auth.signInWithPassword({
@@ -73,10 +83,7 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-background p-space-md">
       <Card className="max-w-md w-full flex flex-col gap-space-lg">
         <div className="flex flex-col items-center text-center gap-space-xs">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-low text-primary mb-2">
-            <Icon name="auto_awesome" className="text-3xl" />
-          </div>
-          <h1 className="font-headline text-headline-md font-bold text-on-surface">SEGEVIA</h1>
+          <img src="/logo.png" alt="SEGEVIA" className="h-12 object-contain mb-1" />
           <p className="text-body-sm text-on-surface-variant">Gestión comercial impulsada por IA</p>
         </div>
 
@@ -85,6 +92,16 @@ export function Login() {
             Modo Supervisión: Humano en control
           </Badge>
         </div>
+
+        {signupSuccess && (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-space-sm text-body-sm text-emerald-800 flex items-start gap-2">
+            <Icon name="check_circle" className="text-lg shrink-0 text-emerald-600 mt-0.5" />
+            <div>
+              <p className="font-semibold">Revisa tu correo</p>
+              <p className="pt-0.5 text-emerald-700">{signupSuccess}</p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="rounded-lg bg-error-container p-space-sm text-body-sm text-on-error-container flex items-center gap-2">

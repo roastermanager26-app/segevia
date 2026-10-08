@@ -38,7 +38,7 @@ export function Onboarding() {
       if (data?.id) {
         setActiveTenant(data.id);
       }
-      navigate("/");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear la organización");
     } finally {
@@ -50,9 +50,7 @@ export function Onboarding() {
     <div className="flex min-h-screen items-center justify-center bg-background p-space-md">
       <Card className="max-w-md w-full flex flex-col gap-space-lg">
         <div className="flex flex-col gap-space-xs text-center items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-low text-primary mb-2">
-            <Icon name="domain" className="text-3xl" />
-          </div>
+          <img src="/logo.png" alt="SEGEVIA" className="h-10 object-contain mb-2" />
           <h1 className="font-headline text-headline-md font-bold text-on-surface">
             Crea tu Organización
           </h1>

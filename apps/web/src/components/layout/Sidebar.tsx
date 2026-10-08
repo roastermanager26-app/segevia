@@ -75,15 +75,7 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 select-none flex-col justify-between bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div className="flex min-h-0 flex-col">
         <div className="flex items-center gap-space-sm px-space-lg pb-space-md pt-space-lg">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-low">
-            <Icon name="auto_awesome" className="text-2xl text-primary" />
-          </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="font-headline text-headline-sm font-bold uppercase leading-none tracking-tight">SEGEVIA</span>
-            <span className="truncate pt-0.5 text-body-sm text-on-surface-variant" title="Gestión comercial impulsada por IA">
-              Gestión comercial IA
-            </span>
-          </div>
+          <img src="/logo.png" alt="SEGEVIA" className="h-9 object-contain" />
         </div>
         <div className="px-space-md py-space-xs">
           <div className="h-px bg-surface-container" />

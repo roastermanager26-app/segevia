@@ -13,17 +13,7 @@ export function Landing() {
         <div className="h-20 w-full px-margin-mobile md:px-margin flex items-center justify-between">
           <div className="flex items-center gap-space-lg">
             <Link to="/" className="flex items-center gap-space-sm">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-on-primary">
-                <span className="icon text-[22px]">shield</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-headline text-headline-sm text-on-surface tracking-tight leading-none font-bold">
-                  SEGEVIA
-                </span>
-                <span className="text-label-sm text-[10px] text-on-surface-variant uppercase tracking-widest">
-                  Sales IA Enterprise
-                </span>
-              </div>
+              <img src="/logo.png" alt="SEGEVIA" className="h-8 object-contain" />
             </Link>
             <nav className="hidden lg:flex items-center gap-space-lg ml-space-md">
               <a href="#capacidades" className="text-label-md text-on-surface-variant hover:text-on-surface transition-colors">
@@ -367,10 +357,7 @@ export function Landing() {
       <footer className="w-full bg-surface-container-low text-on-surface-variant py-space-xl border-t border-hairline">
         <div className="w-full px-margin-mobile md:px-margin flex flex-col sm:flex-row items-center justify-between gap-space-md">
           <div className="flex items-center gap-space-sm">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-on-primary">
-              <span className="icon text-[18px]">shield</span>
-            </div>
-            <span className="font-headline text-headline-sm text-on-surface tracking-tight font-bold">SEGEVIA</span>
+            <img src="/logo.png" alt="SEGEVIA" className="h-7 object-contain" />
           </div>
           <p className="text-label-sm text-on-surface-variant">
             © 2026 SEGEVIA Technologies. Gestión comercial impulsada por IA.

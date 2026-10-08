@@ -10,4 +10,7 @@ export default defineConfig({
   // En Vercel busca en la raíz de apps/web; en monorepo local busca dos niveles arriba
   envDir: typeof process !== "undefined" && process?.env?.VERCEL ? "." : "../../",
   server: { port: 5173 },
+  build: {
+    emptyOutDir: false,
+  },
 });
