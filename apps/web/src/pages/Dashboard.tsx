@@ -278,17 +278,17 @@ export function Dashboard() {
             onClick={() => navigate("/content-studio")}
             className="group cursor-pointer rounded-xl border border-hairline bg-surface-container-lowest p-space-lg shadow-card hover:border-primary-container transition-all flex flex-col justify-between gap-space-md"
           >
-            <div className="flex items-start gap-space-sm">
-              <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                <Icon name="edit_note" className="text-xl" />
-              </div>
-              <div className="flex flex-col">
+            <div className="flex items-start justify-between gap-space-sm">
+              <div className="flex flex-col gap-1">
                 <h3 className="font-headline text-headline-sm font-bold text-on-surface leading-tight">
                   Crear contenido
                 </h3>
-                <p className="text-body-sm text-on-surface-variant pt-1">
+                <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
                   Generar posts para LinkedIn o Instagram respetando tu voz de marca y tono institucional.
                 </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-primary-fixed/60 flex items-center justify-center text-primary shrink-0 aspect-square group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                <Icon name="edit_note" className="text-xl" />
               </div>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-hairline text-label-sm">
@@ -304,17 +304,17 @@ export function Dashboard() {
             onClick={() => navigate("/knowledge-base")}
             className="group cursor-pointer rounded-xl border border-hairline bg-surface-container-lowest p-space-lg shadow-card hover:border-primary-container transition-all flex flex-col justify-between gap-space-md"
           >
-            <div className="flex items-start gap-space-sm">
-              <div className="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
-                <Icon name="menu_book" className="text-xl" />
-              </div>
-              <div className="flex flex-col">
+            <div className="flex items-start justify-between gap-space-sm">
+              <div className="flex flex-col gap-1">
                 <h3 className="font-headline text-headline-sm font-bold text-on-surface leading-tight">
                   Cargar conocimiento
                 </h3>
-                <p className="text-body-sm text-on-surface-variant pt-1">
+                <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
                   Subir PDFs, catálogo de precios o sincronizar FAQ para alimentar los agentes de venta.
                 </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary shrink-0 aspect-square group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
+                <Icon name="menu_book" className="text-xl" />
               </div>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-hairline text-label-sm">
@@ -330,17 +330,17 @@ export function Dashboard() {
             onClick={() => navigate("/inbox")}
             className="group cursor-pointer rounded-xl border border-hairline bg-surface-container-lowest p-space-lg shadow-card hover:border-primary-container transition-all flex flex-col justify-between gap-space-md"
           >
-            <div className="flex items-start gap-space-sm">
-              <div className="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors">
-                <Icon name="chat" className="text-xl" />
-              </div>
-              <div className="flex flex-col">
+            <div className="flex items-start justify-between gap-space-sm">
+              <div className="flex flex-col gap-1">
                 <h3 className="font-headline text-headline-sm font-bold text-on-surface leading-tight">
                   Ver Inbox
                 </h3>
-                <p className="text-body-sm text-on-surface-variant pt-1">
+                <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
                   Atender conversaciones omnicanal que solicitaron cotización directa con ejecutivo humano.
                 </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary shrink-0 aspect-square group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors">
+                <Icon name="chat" className="text-xl" />
               </div>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-hairline text-label-sm">
@@ -356,17 +356,17 @@ export function Dashboard() {
             onClick={() => navigate("/agentes")}
             className="group cursor-pointer rounded-xl border border-hairline bg-surface-container-lowest p-space-lg shadow-card hover:border-primary-container transition-all flex flex-col justify-between gap-space-md"
           >
-            <div className="flex items-start gap-space-sm">
-              <div className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                <Icon name="smart_toy" className="text-xl" />
-              </div>
-              <div className="flex flex-col">
+            <div className="flex items-start justify-between gap-space-sm">
+              <div className="flex flex-col gap-1">
                 <h3 className="font-headline text-headline-sm font-bold text-on-surface leading-tight">
                   Configurar agente
                 </h3>
-                <p className="text-body-sm text-on-surface-variant pt-1">
+                <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
                   Configurar un nuevo bot comercial o calificador de leads con reglas y guardarraíles.
                 </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface shrink-0 aspect-square group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                <Icon name="smart_toy" className="text-xl" />
               </div>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-hairline text-label-sm">
