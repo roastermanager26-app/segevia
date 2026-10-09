@@ -1,0 +1,29 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const headers = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Content-Type": "application/json" };
+const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  if (req.method !== "POST") return reply({ error: "Método no permitido" }, 405);
+  const url = Deno.env.get("SUPABASE_URL"); const anon = Deno.env.get("SUPABASE_ANON_KEY"); const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); const auth = req.headers.get("Authorization");
+  if (!url || !anon || !service || !auth) return reply({ error: "No autenticado" }, 401);
+  try {
+    const { tenantId, question } = await req.json(); if (typeof tenantId !== "string" || typeof question !== "string" || question.trim().length < 3) return reply({ error: "Ingresá una pregunta de al menos 3 caracteres." }, 400);
+    const userClient = createClient(url, anon, { global: { headers: { Authorization: auth } } }); const { data: userData } = await userClient.auth.getUser(); const user = userData.user;
+    const { data: membership } = user ? await userClient.from("memberships").select("role").eq("tenant_id", tenantId).eq("user_id", user.id).maybeSingle() : { data: null }; if (!user || !membership) return reply({ error: "No autorizado" }, 403);
+    const admin = createClient(url, service, { auth: { persistSession: false } });
+    const { data: configs, error: configError } = await admin.from("llm_model_configs").select("integration_id,model_id,slot,capability").eq("tenant_id", tenantId).eq("is_active", true); if (configError) throw configError;
+    const pick = (capability: string) => (configs ?? []).filter((item) => item.capability === capability).sort((a, b) => a.slot === "primary" ? -1 : b.slot === "primary" ? 1 : 0)[0];
+    const embedding = pick("embedding"); const text = pick("text"); if (!embedding || !text) return reply({ error: "Configurá modelos de texto y embeddings para probar el agente." }, 422);
+    const { data: embeddingIntegration } = await admin.from("integrations").select("provider").eq("id", embedding.integration_id).single(); const { data: textIntegration } = await admin.from("integrations").select("provider").eq("id", text.integration_id).single();
+    if (embeddingIntegration?.provider !== "openrouter" || textIntegration?.provider !== "openrouter") return reply({ error: "La prueba RAG actualmente requiere OpenRouter para texto y embeddings." }, 422);
+    const { data: embeddingToken, error: embeddingTokenError } = await admin.rpc("read_llm_token", { p_integration_id: embedding.integration_id }); if (embeddingTokenError || !embeddingToken) throw embeddingTokenError ?? new Error("Token de embeddings no disponible.");
+    const vectorResponse = await fetch("https://openrouter.ai/api/v1/embeddings", { method: "POST", headers: { Authorization: `Bearer ${embeddingToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: embedding.model_id, input: question.trim() }) }); if (!vectorResponse.ok) throw new Error(`No se pudo interpretar la pregunta (${vectorResponse.status}).`); const vectorPayload = await vectorResponse.json() as { data?: Array<{ embedding?: number[] }> }; const vector = vectorPayload.data?.[0]?.embedding; if (!vector) throw new Error("El proveedor no devolvió un embedding.");
+    const { data: matches, error: matchError } = await admin.rpc("match_kb_chunks", { p_tenant_id: tenantId, p_embedding: `[${vector.join(",")}]`, p_embedding_model: embedding.model_id, p_limit: 6, p_categories: null, p_tags: null }); if (matchError) throw matchError; if (!matches?.length) return reply({ answer: "No encontré información suficiente en la Base de Conocimiento para responder esa consulta.", sources: [] });
+    const { data: textToken, error: textTokenError } = await admin.rpc("read_llm_token", { p_integration_id: text.integration_id }); if (textTokenError || !textToken) throw textTokenError ?? new Error("Token de texto no disponible.");
+    const context = matches.map((match: { title: string; content: string; page_number: number | null }) => `[Fuente: ${match.title}${match.page_number ? `, página ${match.page_number}` : ""}]\n${match.content}`).join("\n\n");
+    const answerResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${textToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: text.model_id, messages: [{ role: "system", content: "Sos un agente comercial de SEGEVIA. Respondé únicamente usando el contexto entregado. Si falta información, decilo con claridad. No inventes precios, condiciones ni características." }, { role: "user", content: `Contexto interno:\n${context}\n\nPregunta: ${question.trim()}` }], temperature: 0.2 }) }); if (!answerResponse.ok) throw new Error(`No se pudo generar la respuesta (${answerResponse.status}).`); const answerPayload = await answerResponse.json() as { choices?: Array<{ message?: { content?: string } }> }; const answer = answerPayload.choices?.[0]?.message?.content; if (!answer) throw new Error("El modelo no devolvió una respuesta.");
+    return reply({ answer, sources: matches.map((match: { source_id: string; title: string; page_number: number | null; similarity: number }) => ({ sourceId: match.source_id, title: match.title, page: match.page_number, score: match.similarity })) });
+  } catch (error) { console.error(error); return reply({ error: error instanceof Error ? error.message : "No se pudo consultar la Base de Conocimiento." }, 500); }
+});
