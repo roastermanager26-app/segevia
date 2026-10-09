@@ -30,7 +30,15 @@ function normalize(provider: Provider, raw: Record<string, unknown>): Model {
 
 async function listModels(provider: Provider, key: string): Promise<Model[]> {
   let endpoint = ""; let init: RequestInit = { headers: { Authorization: `Bearer ${key}` } };
-  if (provider === "openrouter") endpoint = "https://openrouter.ai/api/v1/models";
+  if (provider === "openrouter") {
+    const urls = ["https://openrouter.ai/api/v1/models?output_modalities=text", "https://openrouter.ai/api/v1/images/models", "https://openrouter.ai/api/v1/embeddings/models"];
+    const responses = await Promise.allSettled(urls.map(async (url) => { const response = await fetch(url, init); if (!response.ok) throw new Error(`OpenRouter respondió ${response.status}.`); return await response.json() as { data?: Record<string, unknown>[] }; }));
+    const records = responses.flatMap((result) => result.status === "fulfilled" ? result.value.data ?? [] : []);
+    if (!records.length) throw new Error("OpenRouter no permitió leer el catálogo de modelos.");
+    const merged = new Map<string, Model>();
+    for (const model of records.map((record) => normalize(provider, record))) { const existing = merged.get(model.id); merged.set(model.id, existing ? { ...existing, capability: [...new Set([...existing.capability, ...model.capability])], isFree: existing.isFree && model.isFree } : model); }
+    return [...merged.values()];
+  }
   if (provider === "openai") endpoint = "https://api.openai.com/v1/models";
   if (provider === "deepseek") endpoint = "https://api.deepseek.com/models";
   if (provider === "groq") endpoint = "https://api.groq.com/openai/v1/models";
