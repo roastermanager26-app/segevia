@@ -2,12 +2,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const headers = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Content-Type": "application/json" };
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+class RequestError extends Error { constructor(message: string, readonly status: number) { super(message); } }
 const limits: Record<string, number> = { linkedin: 3000, instagram: 2200, x: 280, facebook: 63206, mailing: 10000 };
 const languages: Record<string, string> = { es: "español", en: "inglés", pt: "portugués" };
 
 function parseDraft(value: string) {
   const clean = value.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  const data = JSON.parse(clean) as Record<string, unknown>;
+  const start = clean.indexOf("{"); const end = clean.lastIndexOf("}");
+  if (start < 0 || end < start) throw new Error("El modelo devolvió texto en lugar del formato esperado para el borrador.");
+  const data = JSON.parse(clean.slice(start, end + 1)) as Record<string, unknown>;
   const string = (key: string) => typeof data[key] === "string" ? data[key].trim() : "";
   const hashtags = Array.isArray(data.hashtags) ? data.hashtags.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 12) : [];
   const title = string("title");
@@ -46,7 +49,7 @@ Deno.serve(async (req) => {
     const companyContext = company ? `Empresa: ${company.legal_name ?? ""}\nDescripción: ${company.description ?? ""}\nServicios y productos: ${company.offerings ?? ""}\nContacto: ${company.website_url ?? ""} ${company.contact_email ?? ""} ${company.phone ?? ""}` : "No hay perfil de empresa cargado; no inventes información comercial.";
     const prompt = `Creá un borrador comercial para ${channel} en ${languages[language]}. Usá solamente la tendencia y el perfil entregados; si faltan datos de la empresa, no los inventes. El texto final completo (body + company_help + call_to_action + hashtags) no puede superar ${limits[channel]} caracteres. No uses Markdown ni HTML. Destacá 2 a 4 palabras o frases clave usando negrita Unicode (por ejemplo 𝐢𝐦𝐩𝐚𝐜𝐭𝐨), nunca asteriscos. Usá emojis solo si son naturales para la red. Devolvé ÚNICAMENTE JSON válido con: title, body, company_help, call_to_action, hashtags (array) e image_prompt.\n\nTema: ${topicName}\nTendencia: ${finding.title}\nResumen: ${finding.summary}\nRelevancia: ${finding.relevance_reason}\nFuente: ${finding.source_name ?? ""} ${finding.canonical_url}\n\nPerfil de empresa:\n${companyContext}`;
     const modelResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: text.model_id, messages: [{ role: "system", content: "Sos un redactor B2B preciso. No reveles razonamiento interno." }, { role: "user", content: prompt }], temperature: 0.5, max_tokens: 1600, reasoning: { effort: "none" } }), signal: AbortSignal.timeout(60_000) });
-    if (!modelResponse.ok) throw new Error(`El modelo no respondió correctamente (${modelResponse.status}).`);
+    if (!modelResponse.ok) { const providerDetail = (await modelResponse.text()).slice(0, 300); if (modelResponse.status === 429) throw new RequestError("El proveedor de IA alcanzó su límite temporal o de cuota. Esperá unos minutos, verificá el saldo/límite del modelo o elegí otro modelo de texto.", 429); if (modelResponse.status === 401 || modelResponse.status === 403) throw new RequestError("El proveedor de IA rechazó las credenciales configuradas. Revisá el token de OpenRouter.", 422); throw new RequestError(`El modelo no respondió correctamente (${modelResponse.status}). ${providerDetail}`, 422); }
     const payload = await modelResponse.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = payload.choices?.[0]?.message?.content;
     if (!content) throw new Error("El modelo no devolvió contenido.");
@@ -56,5 +59,5 @@ Deno.serve(async (req) => {
     const { data: post, error: postError } = await admin.from("content_posts").insert({ tenant_id: tenantId, finding_id: finding.id, topic_id: finding.topic_id, channel, language, title: draft.title.slice(0, 500), body: draft.body, company_help: draft.companyHelp, call_to_action: draft.cta, hashtags: draft.hashtags, image_prompt: draft.imagePrompt, created_by: user.id }).select("id").single();
     if (postError) throw postError;
     return reply({ postId: post.id });
-  } catch (error) { console.error(error); return reply({ error: error instanceof Error ? error.message : "No se pudo generar el borrador." }, 500); }
+  } catch (error) { console.error(error); return reply({ error: error instanceof Error ? error.message : "No se pudo generar el borrador." }, error instanceof RequestError ? error.status : 500); }
 });
