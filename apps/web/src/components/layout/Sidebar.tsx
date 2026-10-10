@@ -10,6 +10,7 @@ import { Icon, cx } from "../ui";
 export const NAV_ITEMS = [
   { to: "/dashboard", label: "Inicio", icon: "dashboard", end: true },
   { to: "/content-studio", label: "Content Studio", icon: "auto_fix_high" },
+  { to: "/content-studio/nueva-publicacion", label: "Nueva publicación", icon: "post_add" },
   { to: "/inbox", label: "Inbox", icon: "forum" },
   { to: "/agentes", label: "Agentes", icon: "smart_toy" },
   { to: "/knowledge-base", label: "Knowledge Base", icon: "menu_book" },
