@@ -12,6 +12,7 @@ import { Onboarding } from "./pages/Onboarding";
 import { Dashboard } from "./pages/Dashboard";
 import { ContentStudio } from "./pages/ContentStudio";
 import { ContentPostEditor } from "./pages/ContentPostEditor";
+import { ContentPostsLibrary } from "./pages/ContentPostsLibrary";
 import { Inbox } from "./pages/Inbox";
 import { Agents } from "./pages/Agents";
 import { KnowledgeBase } from "./pages/KnowledgeBase";
@@ -54,6 +55,7 @@ export function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/app" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/content-studio" element={<ContentStudio />} />
+                    <Route path="/content-studio/publicaciones" element={<ContentPostsLibrary />} />
                     <Route path="/content-studio/publicaciones/:postId" element={<ContentPostEditor />} />
                     <Route path="/inbox" element={<Inbox />} />
                     <Route path="/agentes" element={<Agents />} />
