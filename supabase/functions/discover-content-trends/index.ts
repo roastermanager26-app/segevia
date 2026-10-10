@@ -13,7 +13,7 @@ const normalizeUrl = (value: string) => {
   for (const key of [...url.searchParams.keys()]) if (/^(utm_|gclid|fbclid)/i.test(key)) url.searchParams.delete(key);
   return url.toString();
 };
-const summarize = (value: string) => value.trim().split(/\s+/).slice(0, 500).join(" ");
+const summarize = (value: string) => value.trim().split(/\s+/).slice(0, 200).join(" ");
 const asDate = (value: unknown) => { if (typeof value !== "string") return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date.toISOString(); };
 
 async function searchTavily(key: string, query: string): Promise<Candidate[]> {
@@ -77,7 +77,8 @@ Deno.serve(async (req) => {
       const tally = { tavily: 0, searchapi: 0, serpapi: 0 };
       for (const provider of providerResults) for (const candidate of provider.candidates) {
         if (tally[provider.name] >= PER_PROVIDER || existingUrls.has(candidate.url)) continue;
-        const { error } = await admin.from("content_findings").insert({ tenant_id: tenantId, topic_id: topic.id, provider: candidate.provider, canonical_url: candidate.url, source_name: candidate.sourceName, title: candidate.title, published_at: candidate.publishedAt, summary: candidate.summary, relevance_reason: `Resultado reciente relacionado con el tema “${topic.name}” y sus palabras clave.`, language: candidate.language });
+        const relevanceReason = `Resultado reciente relacionado con el tema “${topic.name}” y sus palabras clave.`.slice(0, 180);
+        const { error } = await admin.from("content_findings").insert({ tenant_id: tenantId, topic_id: topic.id, provider: candidate.provider, canonical_url: candidate.url, source_name: candidate.sourceName, title: candidate.title, published_at: candidate.publishedAt, summary: candidate.summary, relevance_reason: relevanceReason, language: candidate.language });
         if (error?.code === "23505") { existingUrls.add(candidate.url); continue; }
         if (error) throw error;
         existingUrls.add(candidate.url); tally[provider.name] += 1; inserted += 1;
