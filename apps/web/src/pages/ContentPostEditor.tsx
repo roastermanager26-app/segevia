@@ -78,9 +78,12 @@ export function ContentPostEditor() {
         .eq("id", post.id).eq("tenant_id", tenant.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setLocalPost(null); setMessage("Cambios guardados.");
-      void queryClient.invalidateQueries({ queryKey: ["content-post", tenant.id, postId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["content-post", tenant.id, postId] }),
+        queryClient.invalidateQueries({ queryKey: ["content-posts", tenant.id] }),
+      ]);
     },
     onError: (error) => setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar."),
   });
