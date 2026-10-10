@@ -69,9 +69,9 @@ const tones: Record<Tone, string> = {
 };
 
 /** Badges de atribución semántica (design system: IA, verificado, humano, revisión). */
-export function Badge({ tone = "neutral", icon, children }: { tone?: Tone; icon?: string; children: ReactNode }) {
+export function Badge({ tone = "neutral", icon, children, className }: { tone?: Tone; icon?: string; children: ReactNode; className?: string }) {
   return (
-    <span className={cx("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-label-sm", tones[tone])}>
+    <span className={cx("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-label-sm", tones[tone], className)}>
       {icon && <Icon name={icon} className="text-sm" />}
       {children}
     </span>
