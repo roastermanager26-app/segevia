@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { db } from "../lib/supabase";
 import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
+import { AppCopyright } from "../components/AppCopyright";
 
 export function Login() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-space-md">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-space-md bg-background p-space-md">
       <Card className="max-w-md w-full flex flex-col gap-space-lg">
         <div className="flex flex-col items-center text-center gap-space-xs">
           <img src="/logo.png" alt="SEGEVIA" className="h-12 object-contain mb-1" />
@@ -193,6 +194,7 @@ export function Login() {
           </div>
         </div>
       </Card>
+      <AppCopyright className="text-center" />
     </div>
   );
 }

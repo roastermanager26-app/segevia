@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { AppCopyright } from "../components/AppCopyright";
 import { useAuth } from "../auth/AuthProvider";
 
 export function Landing() {
@@ -359,9 +360,7 @@ export function Landing() {
           <div className="flex items-center gap-space-sm">
             <img src="/logo.png" alt="SEGEVIA" className="h-7 object-contain" />
           </div>
-          <p className="text-label-sm text-on-surface-variant">
-            © 2026 SEGEVIA Technologies. Gestión comercial impulsada por IA.
-          </p>
+          <AppCopyright />
         </div>
       </footer>
 

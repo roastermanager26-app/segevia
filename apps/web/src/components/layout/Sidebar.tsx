@@ -4,6 +4,7 @@ import { db } from "../../lib/supabase";
 import { formatPct, formatUsd } from "../../lib/format";
 import type { BudgetStatus } from "../../lib/types";
 import { useActiveTenant } from "../../tenant/TenantProvider";
+import { APP_VERSION } from "../../lib/appInfo";
 import { Icon, cx } from "../ui";
 
 export const NAV_ITEMS = [
@@ -74,8 +75,9 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 select-none flex-col justify-between bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div className="flex min-h-0 flex-col">
-        <div className="flex items-center gap-space-sm px-space-lg pb-space-md pt-space-lg">
+        <div className="flex flex-col items-start gap-1 px-space-lg pb-space-md pt-space-lg">
           <img src="/logo.png" alt="SEGEVIA" className="h-9 object-contain" />
+          <span className="pl-0.5 text-label-sm font-medium text-outline">{APP_VERSION}</span>
         </div>
         <div className="px-space-md py-space-xs">
           <div className="h-px bg-surface-container" />

@@ -1,9 +1,10 @@
 import { envIssues } from "../lib/env";
 import { Badge, Button, Card, Icon } from "../components/ui";
+import { AppCopyright } from "../components/AppCopyright";
 
 export function EnvSetup() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-space-md">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-space-md bg-background p-space-md">
       <Card className="max-w-lg w-full flex flex-col gap-space-lg">
         <div className="flex items-center gap-space-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-low text-primary">
@@ -52,6 +53,7 @@ export function EnvSetup() {
           Reintentar conexión
         </Button>
       </Card>
+      <AppCopyright className="text-center" />
     </div>
   );
 }

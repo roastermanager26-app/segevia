@@ -4,6 +4,7 @@ import { db } from "../lib/supabase";
 import { slugify } from "../lib/format";
 import { useTenant } from "../tenant/TenantProvider";
 import { Button, Card, Field, Icon, inputClass } from "../components/ui";
+import { AppCopyright } from "../components/AppCopyright";
 
 export function Onboarding() {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ export function Onboarding() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-space-md">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-space-md bg-background p-space-md">
       <Card className="max-w-md w-full flex flex-col gap-space-lg">
         <div className="flex flex-col gap-space-xs text-center items-center">
           <img src="/logo.png" alt="SEGEVIA" className="h-10 object-contain mb-2" />
@@ -96,6 +97,7 @@ export function Onboarding() {
           </Button>
         </form>
       </Card>
+      <AppCopyright className="text-center" />
     </div>
   );
 }
