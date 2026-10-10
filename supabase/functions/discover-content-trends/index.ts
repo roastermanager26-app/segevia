@@ -43,7 +43,7 @@ async function searchSearchApi(key: string, query: string): Promise<Candidate[]>
 
 async function searchSerpApi(key: string, query: string): Promise<Candidate[]> {
   const url = new URL("https://serpapi.com/search.json");
-  url.searchParams.set("engine", "google_news"); url.searchParams.set("q", query); url.searchParams.set("so", "1"); url.searchParams.set("api_key", key);
+  url.searchParams.set("engine", "google_news"); url.searchParams.set("q", query); url.searchParams.set("api_key", key);
   const response = await fetch(url, { signal: AbortSignal.timeout(25_000) });
   if (!response.ok) throw new Error(`SerpApi respondió ${response.status}.`);
   const payload = await response.json() as { news_results?: Array<Record<string, unknown>> };
@@ -68,10 +68,11 @@ Deno.serve(async (req) => {
     const { data: topics, error: topicsError } = await admin.from("content_topics").select("id,name,keywords").eq("tenant_id", tenantId).eq("is_active", true).order("updated_at", { ascending: false }).limit(MAX_TOPICS);
     if (topicsError) throw topicsError; if (!topics?.length) return reply({ inserted: 0, topics: [], message: "Creá y activá al menos un tema para buscar tendencias." });
     const existingResult = await admin.from("content_findings").select("canonical_url").eq("tenant_id", tenantId).gte("expires_at", new Date().toISOString()); if (existingResult.error) throw existingResult.error;
-    const existingUrls = new Set((existingResult.data ?? []).map((finding) => finding.canonical_url)); let inserted = 0; const results: Array<{ topicId: string; topic: string; tavily: number; searchapi: number; serpapi: number }> = [];
+    const existingUrls = new Set((existingResult.data ?? []).map((finding) => finding.canonical_url)); let inserted = 0; const results: Array<{ topicId: string; topic: string; tavily: number; searchapi: number; serpapi: number }> = []; const providerErrors: Array<{ topic: string; provider: string; error: string }> = [];
     for (const topic of topics as Topic[]) {
       const query = [topic.name, ...topic.keywords].join(" ").slice(0, 800);
       const [tavily, searchapi, serpapi] = await Promise.allSettled([searchTavily(tavilyKey, query), searchSearchApi(searchApiKey, query), searchSerpApi(serpApiKey, query)]);
+      for (const [provider, result] of [["Tavily", tavily], ["SearchApi.io", searchapi], ["SerpApi", serpapi]] as const) if (result.status === "rejected") providerErrors.push({ topic: topic.name, provider, error: result.reason instanceof Error ? result.reason.message : "Error desconocido" });
       const providerResults = [{ name: "tavily" as const, candidates: tavily.status === "fulfilled" ? tavily.value : [] }, { name: "searchapi" as const, candidates: searchapi.status === "fulfilled" ? searchapi.value : [] }, { name: "serpapi" as const, candidates: serpapi.status === "fulfilled" ? serpapi.value : [] }];
       const tally = { tavily: 0, searchapi: 0, serpapi: 0 };
       for (const provider of providerResults) for (const candidate of provider.candidates) {
@@ -83,6 +84,6 @@ Deno.serve(async (req) => {
       }
       results.push({ topicId: topic.id, topic: topic.name, ...tally });
     }
-    return reply({ inserted, topics: results });
+    return reply({ inserted, topics: results, providerErrors });
   } catch (error) { console.error(error); const message = error instanceof Error ? error.message : "No se pudieron buscar tendencias."; return reply({ error: message }, 500); }
 });
