@@ -69,9 +69,19 @@ export function ContentPostsLibrary() {
   const refresh = () => void qc.invalidateQueries({ queryKey: ["content-posts", tenant.id] });
   const updateStatus = useMutation({
     mutationFn: async ({ post, status: next }: { post: Post; status: Status }) => {
+      const values =
+        next === "published"
+          ? {
+              status: next,
+              published_at: new Date().toISOString(),
+              external_post_id: null,
+              external_post_url: null,
+              publish_error: null,
+            }
+          : { status: next };
       const { error: updateError } = await db()
         .from("content_posts")
-        .update({ status: next })
+        .update(values)
         .eq("id", post.id)
         .eq("tenant_id", tenant.id);
       if (updateError) throw updateError;
@@ -334,6 +344,25 @@ export function ContentPostsLibrary() {
                           className="rounded-lg p-2 text-primary hover:bg-primary-fixed disabled:text-outline"
                         >
                           <Icon name="publish" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Marcar como publicada manualmente"
+                          disabled={
+                            !can("admin") || post.status !== "approved" || updateStatus.isPending
+                          }
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `¿Marcar “${post.title}” como publicada manualmente? No se enviará a ${channelLabel[post.channel]}.`,
+                              )
+                            ) {
+                              updateStatus.mutate({ post, status: "published" });
+                            }
+                          }}
+                          className="rounded-lg p-2 text-primary hover:bg-primary-fixed disabled:text-outline"
+                        >
+                          <Icon name="task_alt" />
                         </button>
                         <button
                           type="button"
