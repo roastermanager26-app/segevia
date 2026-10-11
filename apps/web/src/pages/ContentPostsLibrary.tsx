@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
 import { db } from "../lib/supabase";
+import { functionErrorMessage } from "../lib/functionError";
 import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
 
 type Channel = "linkedin" | "instagram" | "x" | "facebook" | "mailing";
@@ -91,7 +92,10 @@ export function ContentPostsLibrary() {
       const { data, error: invokeError } = await db().functions.invoke("publish-linkedin-post", {
         body: { tenantId: tenant.id, postId: post.id },
       });
-      if (invokeError) throw invokeError;
+      if (invokeError)
+        throw new Error(
+          await functionErrorMessage(invokeError, "No se pudo publicar en LinkedIn."),
+        );
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
