@@ -23,6 +23,17 @@ const fromBase64Url = (value: string) => {
 };
 const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: corsHeaders });
+const errorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  )
+    return (error as { message: string }).message;
+  return fallback;
+};
 const html = (title: string, text: string, status = 200) =>
   new Response(
     `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><body style="font-family:system-ui;background:#f8f7ff;color:#172036;display:grid;place-items:center;min-height:100vh;margin:0"><main style="max-width:32rem;background:#fff;padding:2rem;border-radius:1rem;box-shadow:0 10px 30px #17203620"><h1>${title}</h1><p>${text}</p><p>Podés volver a SEGEVIA.</p></main></body></html>`,
@@ -148,7 +159,7 @@ Deno.serve(async (req) => {
     } catch (error) {
       console.error(error);
       return reply(
-        { error: error instanceof Error ? error.message : "No se pudo iniciar la autorización." },
+        { error: errorMessage(error, "No se pudo iniciar la autorización.") },
         500,
       );
     }
@@ -219,7 +230,7 @@ Deno.serve(async (req) => {
     console.error(error);
     return html(
       "No se pudo conectar LinkedIn",
-      error instanceof Error ? error.message : "Ocurrió un error al guardar la autorización.",
+      errorMessage(error, "Ocurrió un error al guardar la autorización."),
       500,
     );
   }
