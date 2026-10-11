@@ -96,15 +96,6 @@ Deno.serve(async (req) => {
         422,
       );
     }
-    if (!Array.isArray(integration.scopes) || !integration.scopes.includes("w_member_social")) {
-      return reply(
-        {
-          error:
-            "La cuenta de LinkedIn no autorizó permisos de publicación. Reconectala y aceptá los permisos.",
-        },
-        422,
-      );
-    }
     const { data: token, error: tokenError } = await admin.rpc("read_linkedin_token", {
       p_integration_id: integration.id,
     });
