@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
 import { db } from "../lib/supabase";
 import { functionErrorMessage } from "../lib/functionError";
+import { useFeedback } from "../components/FeedbackProvider";
 import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
 
 type Channel = "linkedin" | "instagram" | "x" | "facebook" | "mailing";
@@ -47,6 +48,7 @@ export function ContentPostsLibrary() {
   const { tenant } = useActiveTenant();
   const { can } = useTenant();
   const qc = useQueryClient();
+  const { confirm, notify } = useFeedback();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Status | "all">("all");
   const [convertPost, setConvertPost] = useState<Post | null>(null);
@@ -86,13 +88,23 @@ export function ContentPostsLibrary() {
         .eq("tenant_id", tenant.id);
       if (updateError) throw updateError;
     },
-    onSuccess: refresh,
-    onError: (mutationError) =>
-      setError(
+    onSuccess: (_, variables) => {
+      setError(null);
+      notify(
+        variables.status === "published"
+          ? "La publicación fue marcada como publicada manualmente."
+          : "El estado de la publicación fue actualizado.",
+      );
+      refresh();
+    },
+    onError: (mutationError) => {
+      const message =
         mutationError instanceof Error
           ? mutationError.message
-          : "No se pudo actualizar la publicación.",
-      ),
+          : "No se pudo actualizar la publicación.";
+      setError(message);
+      notify(message, "error");
+    },
   });
   const publishLinkedIn = useMutation({
     mutationFn: async (post: Post) => {
@@ -110,12 +122,15 @@ export function ContentPostsLibrary() {
     },
     onSuccess: () => {
       setError(null);
+      notify("Publicación enviada a LinkedIn.");
       refresh();
     },
-    onError: (mutationError) =>
-      setError(
-        mutationError instanceof Error ? mutationError.message : "No se pudo publicar en LinkedIn.",
-      ),
+    onError: (mutationError) => {
+      const message =
+        mutationError instanceof Error ? mutationError.message : "No se pudo publicar en LinkedIn.";
+      setError(message);
+      notify(message, "error");
+    },
   });
   const remove = useMutation({
     mutationFn: async (post: Post) => {
@@ -126,13 +141,18 @@ export function ContentPostsLibrary() {
         .eq("tenant_id", tenant.id);
       if (deleteError) throw deleteError;
     },
-    onSuccess: refresh,
-    onError: (mutationError) =>
-      setError(
+    onSuccess: () => {
+      notify("La publicación fue eliminada.");
+      refresh();
+    },
+    onError: (mutationError) => {
+      const message =
         mutationError instanceof Error
           ? mutationError.message
-          : "No se pudo eliminar la publicación.",
-      ),
+          : "No se pudo eliminar la publicación.";
+      setError(message);
+      notify(message, "error");
+    },
   });
   const convert = useMutation({
     mutationFn: async () => {
@@ -337,9 +357,13 @@ export function ContentPostsLibrary() {
                             publishLinkedIn.isPending
                           }
                           onClick={() => {
-                            if (window.confirm(`¿Publicar “${post.title}” ahora en LinkedIn?`)) {
-                              publishLinkedIn.mutate(post);
-                            }
+                            void confirm({
+                              title: "Publicar en LinkedIn",
+                              message: `¿Publicar “${post.title}” ahora en LinkedIn?`,
+                              confirmLabel: "Publicar",
+                            }).then((accepted) => {
+                              if (accepted) publishLinkedIn.mutate(post);
+                            });
                           }}
                           className="rounded-lg p-2 text-primary hover:bg-primary-fixed disabled:text-outline"
                         >
@@ -352,13 +376,13 @@ export function ContentPostsLibrary() {
                             !can("admin") || post.status !== "approved" || updateStatus.isPending
                           }
                           onClick={() => {
-                            if (
-                              window.confirm(
-                                `¿Marcar “${post.title}” como publicada manualmente? No se enviará a ${channelLabel[post.channel]}.`,
-                              )
-                            ) {
-                              updateStatus.mutate({ post, status: "published" });
-                            }
+                            void confirm({
+                              title: "Marcar como publicada",
+                              message: `¿Marcar “${post.title}” como publicada manualmente? No se enviará a ${channelLabel[post.channel]}.`,
+                              confirmLabel: "Marcar como publicada",
+                            }).then((accepted) => {
+                              if (accepted) updateStatus.mutate({ post, status: "published" });
+                            });
                           }}
                           className="rounded-lg p-2 text-primary hover:bg-primary-fixed disabled:text-outline"
                         >
@@ -393,7 +417,14 @@ export function ContentPostsLibrary() {
                           title="Eliminar"
                           disabled={!can("admin") || remove.isPending}
                           onClick={() => {
-                            if (window.confirm(`¿Eliminar “${post.title}”?`)) remove.mutate(post);
+                            void confirm({
+                              title: "Eliminar publicación",
+                              message: `¿Eliminar “${post.title}”? Esta acción no se puede deshacer.`,
+                              confirmLabel: "Eliminar",
+                              tone: "error",
+                            }).then((accepted) => {
+                              if (accepted) remove.mutate(post);
+                            });
                           }}
                           className="rounded-lg p-2 text-error hover:bg-error-container disabled:text-outline"
                         >

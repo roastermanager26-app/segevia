@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useActiveTenant } from "../tenant/TenantProvider";
 import { isDemoTenant } from "../lib/demo";
 import { Badge, Button, Card, Icon } from "../components/ui";
+import { useFeedback } from "../components/FeedbackProvider";
 
 interface AgentItem {
   id: string;
@@ -51,16 +52,19 @@ export function Agents() {
   const { session } = useAuth();
   const { tenant } = useActiveTenant();
   const isDemo = isDemoTenant(tenant, session?.user?.email);
+  const { notify } = useFeedback();
 
   const [activeAgents, setActiveAgents] = useState<AgentItem[]>(TEMPLATE_AGENTS);
   const [selectedAgent, setSelectedAgent] = useState<AgentItem | null>(null);
 
   const toggleAgent = (id: string) => {
+    const agent = activeAgents.find((item) => item.id === id);
     setActiveAgents((prev) =>
       prev.map((a) =>
-        a.id === id ? { ...a, status: a.status === "active" ? "standby" : "active" } : a
-      )
+        a.id === id ? { ...a, status: a.status === "active" ? "standby" : "active" } : a,
+      ),
     );
+    if (agent) notify(`${agent.name} fue ${agent.status === "active" ? "pausado" : "activado"}.`);
   };
 
   return (
@@ -70,7 +74,8 @@ export function Agents() {
           <div className="flex items-center gap-2.5">
             <Icon name="info" className="text-amber-600 text-lg shrink-0" />
             <span>
-              <strong>Modo Demostración:</strong> Mostrando agentes comerciales preconfigurados de prueba.
+              <strong>Modo Demostración:</strong> Mostrando agentes comerciales preconfigurados de
+              prueba.
             </span>
           </div>
         </div>
@@ -83,16 +88,21 @@ export function Agents() {
               Configuración de Agentes
             </span>
           </div>
-          <h1 className="font-headline text-headline-lg font-bold text-on-surface">Agentes de Venta IA</h1>
+          <h1 className="font-headline text-headline-lg font-bold text-on-surface">
+            Agentes de Venta IA
+          </h1>
           <p className="text-body-md text-on-surface-variant">
-            Administra los roles, prompts, modelos asignados y herramientas de tus agentes en {tenant.name}.
+            Administra los roles, prompts, modelos asignados y herramientas de tus agentes en{" "}
+            {tenant.name}.
           </p>
         </div>
 
         <Button
           variant="primary"
           icon="add"
-          onClick={() => alert("Asistente de creación de agentes: define rol, canal, guardarraíles y temperatura.")}
+          onClick={() =>
+            notify("El asistente de creación de agentes estará disponible próximamente.")
+          }
         >
           Crear nuevo agente
         </Button>
@@ -106,7 +116,10 @@ export function Agents() {
             <Card key={agent.id} className="flex flex-col justify-between gap-space-md">
               <div className="flex flex-col gap-space-sm">
                 <div className="flex items-center justify-between">
-                  <Badge tone={isActive ? "verified" : "neutral"} icon={isActive ? "check_circle" : "pause"}>
+                  <Badge
+                    tone={isActive ? "verified" : "neutral"}
+                    icon={isActive ? "check_circle" : "pause"}
+                  >
                     {isActive ? "Activo" : "En pausa"}
                   </Badge>
                   <span className="text-body-sm text-outline font-medium">{agent.model}</span>
@@ -137,11 +150,7 @@ export function Agents() {
                   >
                     {isActive ? "Pausar bot" : "Activar bot"}
                   </Button>
-                  <Button
-                    variant="secondary"
-                    icon="tune"
-                    onClick={() => setSelectedAgent(agent)}
-                  >
+                  <Button variant="secondary" icon="tune" onClick={() => setSelectedAgent(agent)}>
                     Reglas
                   </Button>
                 </div>
@@ -173,20 +182,25 @@ export function Agents() {
 
             <div className="flex flex-col gap-3 text-body-sm text-on-surface">
               <p className="text-on-surface-variant">
-                Configura los límites operativos y la política de atención de este agente para <strong>{tenant.name}</strong>.
+                Configura los límites operativos y la política de atención de este agente para{" "}
+                <strong>{tenant.name}</strong>.
               </p>
 
               <div className="p-3 rounded-xl bg-surface-container-low border border-hairline flex flex-col gap-2">
                 <span className="font-semibold text-primary">Política Human-in-the-Loop</span>
                 <p className="text-xs text-on-surface-variant">
-                  Si un prospecto solicita una cotización superior al umbral o términos contractuales especiales, el agente transfiere el control de forma inmediata al operador humano.
+                  Si un prospecto solicita una cotización superior al umbral o términos
+                  contractuales especiales, el agente transfiere el control de forma inmediata al
+                  operador humano.
                 </p>
               </div>
 
               <div className="p-3 rounded-xl bg-surface-container-low border border-hairline flex flex-col gap-2">
                 <span className="font-semibold text-secondary">Fundamentación obligatoria</span>
                 <p className="text-xs text-on-surface-variant">
-                  Cualquier afirmación de precios o especificaciones debe provenir de documentos activos en la Knowledge Base. Sin coincidencia, el bot debe indicar que consultará con un asesor.
+                  Cualquier afirmación de precios o especificaciones debe provenir de documentos
+                  activos en la Knowledge Base. Sin coincidencia, el bot debe indicar que consultará
+                  con un asesor.
                 </p>
               </div>
             </div>

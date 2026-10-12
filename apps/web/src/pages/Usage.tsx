@@ -6,6 +6,7 @@ import { useActiveTenant } from "../tenant/TenantProvider";
 import { useTenantBudget } from "../components/layout/Sidebar";
 import { isDemoTenant } from "../lib/demo";
 import { Badge, Button, Card, Icon } from "../components/ui";
+import { useFeedback } from "../components/FeedbackProvider";
 
 interface UsageEventRecord {
   id: number;
@@ -56,6 +57,7 @@ const DEMO_USAGE_EVENTS: UsageEventRecord[] = [
 ];
 
 export function Usage() {
+  const { notify } = useFeedback();
   const { session } = useAuth();
   const { tenant } = useActiveTenant();
   const { data: budget } = useTenantBudget();
@@ -103,18 +105,27 @@ export function Usage() {
             Consumos y Presupuesto
           </h1>
           <p className="text-body-md text-on-surface-variant">
-            Trazabilidad inmutable de tokens, imágenes generadas, minutos de voz y límites por organización.
+            Trazabilidad inmutable de tokens, imágenes generadas, minutos de voz y límites por
+            organización.
           </p>
         </div>
 
-        <Button variant="secondary" icon="tune" onClick={() => alert("El presupuesto mensual actual es administrado por el Owner de la organización.")}>
+        <Button
+          variant="secondary"
+          icon="tune"
+          onClick={() =>
+            notify("El presupuesto mensual actual es administrado por el Owner de la organización.")
+          }
+        >
           Modificar presupuesto
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
         <Card className="flex flex-col justify-between gap-space-md">
-          <span className="text-label-sm font-semibold uppercase text-outline">Gasto Mes Actual</span>
+          <span className="text-label-sm font-semibold uppercase text-outline">
+            Gasto Mes Actual
+          </span>
           <h3 className="font-headline text-headline-md font-bold text-on-surface tabular">
             {budget ? formatUsd(budget.spent_usd) : "$0.00 USD"}
           </h3>
@@ -124,7 +135,9 @@ export function Usage() {
         </Card>
 
         <Card className="flex flex-col justify-between gap-space-md">
-          <span className="text-label-sm font-semibold uppercase text-outline">Porcentaje Utilizado</span>
+          <span className="text-label-sm font-semibold uppercase text-outline">
+            Porcentaje Utilizado
+          </span>
           <h3 className="font-headline text-headline-md font-bold text-secondary tabular">
             {budget ? formatPct(budget.used_pct) : "0%"}
           </h3>
@@ -137,14 +150,16 @@ export function Usage() {
         </Card>
 
         <Card className="flex flex-col justify-between gap-space-md">
-          <span className="text-label-sm font-semibold uppercase text-outline">Regla al Agotar</span>
+          <span className="text-label-sm font-semibold uppercase text-outline">
+            Regla al Agotar
+          </span>
           <div className="flex items-center gap-2">
             <Badge tone="human" icon="shield">
               {budget?.on_exhaust === "degrade"
                 ? "Degradar modelo"
                 : budget?.on_exhaust === "pause"
-                ? "Pausar agente"
-                : "Alertar al administrador"}
+                  ? "Pausar agente"
+                  : "Alertar al administrador"}
             </Badge>
           </div>
           <span className="text-body-sm text-outline">Garantiza cero sobrecostos sorpresa</span>
@@ -203,7 +218,9 @@ export function Usage() {
               Sin consumos registrados aún
             </h4>
             <p className="text-body-sm text-on-surface-variant max-w-md">
-              Aún no se han ejecutado llamadas a modelos en <strong>{tenant.name}</strong>. Cada generación en Content Studio o respuesta de agente quedará registrada aquí con su costo exacto en dólares.
+              Aún no se han ejecutado llamadas a modelos en <strong>{tenant.name}</strong>. Cada
+              generación en Content Studio o respuesta de agente quedará registrada aquí con su
+              costo exacto en dólares.
             </p>
           </div>
         )}

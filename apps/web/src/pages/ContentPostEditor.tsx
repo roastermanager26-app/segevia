@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
 import { db } from "../lib/supabase";
 import { functionErrorMessage } from "../lib/functionError";
+import { useFeedback } from "../components/FeedbackProvider";
 import { CHANNEL_CHARACTER_LIMITS, type ContentChannel } from "../lib/contentRules";
 import { Badge, Button, Card, Field, inputClass } from "../components/ui";
 
@@ -50,6 +51,7 @@ export function ContentPostEditor() {
   const { can } = useTenant();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { confirm, notify } = useFeedback();
   const [localPost, setLocalPost] = useState<Post | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -156,13 +158,17 @@ export function ContentPostEditor() {
     onSuccess: async () => {
       setLocalPost(null);
       setMessage("Publicación enviada a LinkedIn.");
+      notify("Publicación enviada a LinkedIn.");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["content-post", tenant.id, postId] }),
         queryClient.invalidateQueries({ queryKey: ["content-posts", tenant.id] }),
       ]);
     },
-    onError: (error) =>
-      setErrorMessage(error instanceof Error ? error.message : "No se pudo publicar en LinkedIn."),
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "No se pudo publicar en LinkedIn.";
+      setErrorMessage(message);
+      notify(message, "error");
+    },
   });
 
   const preview = useMemo(
@@ -411,7 +417,14 @@ export function ContentPostEditor() {
           disabled={!can("admin")}
           loading={remove.isPending}
           onClick={() => {
-            if (window.confirm("¿Eliminar esta publicación?")) remove.mutate();
+            void confirm({
+              title: "Eliminar publicación",
+              message: "¿Eliminar esta publicación? Esta acción no se puede deshacer.",
+              confirmLabel: "Eliminar",
+              tone: "error",
+            }).then((accepted) => {
+              if (accepted) remove.mutate();
+            });
           }}
         >
           Eliminar

@@ -7,6 +7,7 @@ import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
 import { useTenantBudget } from "../components/layout/Sidebar";
 import { isDemoTenant } from "../lib/demo";
 import { Badge, Button, Card, Icon } from "../components/ui";
+import { useFeedback } from "../components/FeedbackProvider";
 
 interface AuditLogRecord {
   id: number;
@@ -19,6 +20,7 @@ interface AuditLogRecord {
 }
 
 export function Dashboard() {
+  const { notify } = useFeedback();
   const navigate = useNavigate();
   const { session } = useAuth();
   const { tenant } = useActiveTenant();
@@ -62,7 +64,8 @@ export function Dashboard() {
           <div className="flex items-center gap-2.5">
             <Icon name="info" className="text-amber-600 text-lg shrink-0" />
             <span>
-              <strong>Modo Demostración Comercial:</strong> Estás explorando la organización con datos simulados de prueba.
+              <strong>Modo Demostración Comercial:</strong> Estás explorando la organización con
+              datos simulados de prueba.
             </span>
           </div>
           <span className="text-xs text-amber-700 font-mono hidden md:inline">
@@ -86,7 +89,8 @@ export function Dashboard() {
               Buen día, {firstName}
             </h1>
             <p className="text-body-md text-on-surface-variant max-w-2xl">
-              Aquí está el pulso comercial y la actividad supervisada de tu equipo y agentes IA en {tenant.name}.
+              Aquí está el pulso comercial y la actividad supervisada de tu equipo y agentes IA en{" "}
+              {tenant.name}.
             </p>
           </div>
 
@@ -94,15 +98,13 @@ export function Dashboard() {
             <Button
               variant="secondary"
               icon="download"
-              onClick={() => alert("Generando reporte de auditoría comercial...")}
+              onClick={() =>
+                notify("La generación del reporte ejecutivo estará disponible próximamente.")
+              }
             >
               Generar reporte ejecutivo
             </Button>
-            <Button
-              variant="primary"
-              icon="add"
-              onClick={() => navigate("/content-studio")}
-            >
+            <Button variant="primary" icon="add" onClick={() => navigate("/content-studio")}>
               Nueva acción rápida
             </Button>
           </div>
@@ -240,7 +242,8 @@ export function Dashboard() {
                   {budget ? formatPct(budget.used_pct) : "0%"} del presupuesto
                 </span>
                 <span className="text-outline">
-                  Cupo restante: {budget ? formatUsd(Number(budget.limit_usd) - Number(budget.spent_usd)) : "$0"}
+                  Cupo restante:{" "}
+                  {budget ? formatUsd(Number(budget.limit_usd) - Number(budget.spent_usd)) : "$0"}
                 </span>
               </div>
               <p className="text-body-sm text-on-surface-variant leading-snug">
@@ -249,8 +252,8 @@ export function Dashboard() {
                   {budget?.on_exhaust === "degrade"
                     ? "Degradar modelo"
                     : budget?.on_exhaust === "pause"
-                    ? "Pausar agente"
-                    : "Alertar"}
+                      ? "Pausar agente"
+                      : "Alertar"}
                 </strong>
               </p>
             </div>
@@ -284,7 +287,8 @@ export function Dashboard() {
                   Crear contenido
                 </h3>
                 <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
-                  Generar posts para LinkedIn o Instagram respetando tu voz de marca y tono institucional.
+                  Generar posts para LinkedIn o Instagram respetando tu voz de marca y tono
+                  institucional.
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-primary-fixed/60 flex items-center justify-center text-primary shrink-0 aspect-square group-hover:bg-primary group-hover:text-on-primary transition-colors">
@@ -310,7 +314,8 @@ export function Dashboard() {
                   Cargar conocimiento
                 </h3>
                 <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
-                  Subir PDFs, catálogo de precios o sincronizar FAQ para alimentar los agentes de venta.
+                  Subir PDFs, catálogo de precios o sincronizar FAQ para alimentar los agentes de
+                  venta.
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary shrink-0 aspect-square group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
@@ -336,7 +341,8 @@ export function Dashboard() {
                   Ver Inbox
                 </h3>
                 <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
-                  Atender conversaciones omnicanal que solicitaron cotización directa con ejecutivo humano.
+                  Atender conversaciones omnicanal que solicitaron cotización directa con ejecutivo
+                  humano.
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary shrink-0 aspect-square group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors">
@@ -362,7 +368,8 @@ export function Dashboard() {
                   Configurar agente
                 </h3>
                 <p className="text-body-sm text-on-surface-variant pt-1 leading-normal">
-                  Configurar un nuevo bot comercial o calificador de leads con reglas y guardarraíles.
+                  Configurar un nuevo bot comercial o calificador de leads con reglas y
+                  guardarraíles.
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface shrink-0 aspect-square group-hover:bg-primary group-hover:text-on-primary transition-colors">
@@ -419,7 +426,8 @@ export function Dashboard() {
                     <strong className="text-secondary">Oportunidad Alta</strong>
                   </p>
                   <span className="text-body-sm text-on-surface-variant">
-                    Presupuesto estimado: <strong>$12,000 USD</strong> · Producto: Abastecimiento Industrial Q1
+                    Presupuesto estimado: <strong>$12,000 USD</strong> · Producto: Abastecimiento
+                    Industrial Q1
                   </span>
                 </div>
               </div>
@@ -443,7 +451,8 @@ export function Dashboard() {
                     <Badge tone="review">Revisión Pendiente</Badge>
                   </div>
                   <p className="text-body-md text-on-surface">
-                    Generó <strong>2 borradores para LinkedIn</strong> basados en el caso de éxito de Implementación AgroTech.
+                    Generó <strong>2 borradores para LinkedIn</strong> basados en el caso de éxito
+                    de Implementación AgroTech.
                   </p>
                   <span className="text-body-sm text-on-surface-variant">
                     Tono: Autoridad B2B · Citas validadas de métricas de retención
@@ -474,7 +483,9 @@ export function Dashboard() {
                     <span className="text-body-sm text-outline">Operador: Sofía Valenzuela</span>
                   </div>
                   <p className="text-body-md text-on-surface">
-                    Tomó <strong>control manual</strong> del chat de <strong>Logística Patagonia</strong> tras solicitud de condiciones contractuales complejas.
+                    Tomó <strong>control manual</strong> del chat de{" "}
+                    <strong>Logística Patagonia</strong> tras solicitud de condiciones contractuales
+                    complejas.
                   </p>
                   <span className="text-body-sm text-secondary font-medium flex items-center gap-1">
                     <Icon name="lock" className="text-sm" /> Modo seguro: IA pausada en este canal
@@ -504,11 +515,16 @@ export function Dashboard() {
                     Indexación completada: <strong>Tarifario Servicios Q4 2024.pdf</strong>
                   </p>
                   <span className="text-body-sm text-on-surface-variant">
-                    24 fragmentos vectorizados con éxito · Disponibilidad inmediata en agentes comerciales
+                    24 fragmentos vectorizados con éxito · Disponibilidad inmediata en agentes
+                    comerciales
                   </span>
                 </div>
               </div>
-              <Button variant="secondary" icon="visibility" onClick={() => navigate("/knowledge-base")}>
+              <Button
+                variant="secondary"
+                icon="visibility"
+                onClick={() => navigate("/knowledge-base")}
+              >
                 Ver fuentes
               </Button>
             </div>
@@ -518,7 +534,9 @@ export function Dashboard() {
           <div className="flex flex-col gap-space-sm">
             {loadingLogs ? (
               <div className="p-8 text-center bg-surface-container-lowest rounded-xl border border-hairline">
-                <span className="text-body-sm text-on-surface-variant">Cargando eventos de auditoría...</span>
+                <span className="text-body-sm text-on-surface-variant">
+                  Cargando eventos de auditoría...
+                </span>
               </div>
             ) : auditLogs.length > 0 ? (
               auditLogs.map((log) => (
@@ -543,7 +561,8 @@ export function Dashboard() {
                         <Badge tone="human">{log.actor_type}</Badge>
                       </div>
                       <p className="text-body-md text-on-surface">
-                        Entidad: <strong>{log.entity_type}</strong> {log.entity_id ? `(${log.entity_id})` : ""}
+                        Entidad: <strong>{log.entity_type}</strong>{" "}
+                        {log.entity_id ? `(${log.entity_id})` : ""}
                       </p>
                     </div>
                   </div>
@@ -560,7 +579,8 @@ export function Dashboard() {
                     Tu sede operativa en {tenant.name} está lista
                   </h3>
                   <p className="text-body-md text-on-surface-variant">
-                    Cada interacción de tus agentes, publicaciones generadas y aprobaciones de tu equipo quedarán registradas en este registro inmutable con trazabilidad total.
+                    Cada interacción de tus agentes, publicaciones generadas y aprobaciones de tu
+                    equipo quedarán registradas en este registro inmutable con trazabilidad total.
                   </p>
                 </div>
 

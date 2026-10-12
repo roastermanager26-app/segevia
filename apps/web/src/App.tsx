@@ -20,6 +20,7 @@ import { KnowledgeBase } from "./pages/KnowledgeBase";
 import { Integrations } from "./pages/Integrations";
 import { Usage } from "./pages/Usage";
 import { Settings } from "./pages/Settings";
+import { FeedbackProvider } from "./components/FeedbackProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,40 +40,51 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TenantProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Rutas Públicas */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/landing" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
+          <FeedbackProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Rutas Públicas */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/landing" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
 
-              {/* Rutas que requieren autenticación */}
-              <Route element={<RequireAuth />}>
-                <Route path="/onboarding" element={<Onboarding />} />
+                {/* Rutas que requieren autenticación */}
+                <Route element={<RequireAuth />}>
+                  <Route path="/onboarding" element={<Onboarding />} />
 
-                {/* Rutas que requieren organización activa y usan el shell */}
-                <Route element={<RequireTenant />}>
-                  <Route element={<AppShell />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/app" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/content-studio" element={<ContentStudio />} />
-                    <Route path="/content-studio/publicaciones" element={<ContentPostsLibrary />} />
-                    <Route path="/content-studio/nueva-publicacion" element={<ManualContentPost />} />
-                    <Route path="/content-studio/publicaciones/:postId" element={<ContentPostEditor />} />
-                    <Route path="/inbox" element={<Inbox />} />
-                    <Route path="/agentes" element={<Agents />} />
-                    <Route path="/knowledge-base" element={<KnowledgeBase />} />
-                    <Route path="/integraciones" element={<Integrations />} />
-                    <Route path="/consumos" element={<Usage />} />
-                    <Route path="/configuracion" element={<Settings />} />
+                  {/* Rutas que requieren organización activa y usan el shell */}
+                  <Route element={<RequireTenant />}>
+                    <Route element={<AppShell />}>
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/content-studio" element={<ContentStudio />} />
+                      <Route
+                        path="/content-studio/publicaciones"
+                        element={<ContentPostsLibrary />}
+                      />
+                      <Route
+                        path="/content-studio/nueva-publicacion"
+                        element={<ManualContentPost />}
+                      />
+                      <Route
+                        path="/content-studio/publicaciones/:postId"
+                        element={<ContentPostEditor />}
+                      />
+                      <Route path="/inbox" element={<Inbox />} />
+                      <Route path="/agentes" element={<Agents />} />
+                      <Route path="/knowledge-base" element={<KnowledgeBase />} />
+                      <Route path="/integraciones" element={<Integrations />} />
+                      <Route path="/consumos" element={<Usage />} />
+                      <Route path="/configuracion" element={<Settings />} />
+                    </Route>
                   </Route>
                 </Route>
-              </Route>
 
-              {/* Catch-all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
+                {/* Catch-all */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </FeedbackProvider>
         </TenantProvider>
       </AuthProvider>
     </QueryClientProvider>
