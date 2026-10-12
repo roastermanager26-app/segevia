@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useActiveTenant, useTenant } from "../tenant/TenantProvider";
 import { db } from "../lib/supabase";
 import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
+import { useFeedback } from "../components/FeedbackProvider";
 
 type Capability = "text" | "image" | "embedding";
 type Provider =
@@ -61,6 +62,7 @@ const capLabel: Record<Capability, string> = {
 export function Integrations() {
   const { tenant } = useActiveTenant();
   const { can } = useTenant();
+  const { confirm, notify } = useFeedback();
   const qc = useQueryClient();
   const [activeSection, setActiveSection] = useState("models");
   const [open, setOpen] = useState(false);
@@ -270,6 +272,40 @@ export function Integrations() {
         reason instanceof Error ? reason.message : "No se pudo iniciar la conexión con LinkedIn.",
       ),
   });
+  const disconnect = useMutation({
+    mutationFn: async ({ provider }: { provider: string; label: string }) => {
+      const { data, error: invokeError } = await db().functions.invoke("disconnect-integration", {
+        body: { tenantId: tenant.id, provider },
+      });
+      if (invokeError) throw invokeError;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: (_, integration) => {
+      setCatalog((current) => current.filter((model) => model.provider !== integration.provider));
+      setError(null);
+      setLinkedinError(null);
+      setTelegramError(null);
+      void qc.invalidateQueries({ queryKey: ["tenant", tenant.id, "integrations"] });
+      void qc.invalidateQueries({ queryKey: ["llm-model-configs", tenant.id] });
+      void qc.invalidateQueries({ queryKey: ["telegram-config", tenant.id] });
+      notify(`${integration.label} se desconectó y se eliminaron sus datos guardados.`);
+    },
+    onError: (reason) =>
+      notify(
+        reason instanceof Error ? reason.message : "No se pudo desconectar la integración.",
+        "error",
+      ),
+  });
+  const requestDisconnect = async (provider: string, label: string) => {
+    const accepted = await confirm({
+      title: `Desconectar ${label}`,
+      message:
+        "Se eliminarán de SEGEVIA las credenciales, la configuración y los datos operativos guardados para esta integración. Esta acción no elimina publicaciones ya realizadas en la red.",
+      confirmLabel: "Desconectar y eliminar datos",
+      tone: "error",
+    });
+    if (accepted) disconnect.mutate({ provider, label });
+  };
   const modelsFor = (capability: Capability) =>
     catalog
       .filter(
@@ -354,9 +390,21 @@ export function Integrations() {
             <div className="flex flex-wrap gap-2">
               {connected.length ? (
                 connected.map((item) => (
-                  <Badge key={item.id} tone="verified" icon="check_circle">
-                    {connectedLabel(item)}
-                  </Badge>
+                  <div key={item.id} className="inline-flex items-center gap-1">
+                    <Badge tone="verified" icon="check_circle">
+                      {connectedLabel(item)}
+                    </Badge>
+                    <button
+                      type="button"
+                      className="rounded-full p-1 text-error hover:bg-error-container/40 disabled:opacity-60"
+                      disabled={!can("admin") || disconnect.isPending}
+                      onClick={() => requestDisconnect(item.provider, connectedLabel(item))}
+                      aria-label={`Desconectar ${connectedLabel(item)}`}
+                      title={`Desconectar ${connectedLabel(item)}`}
+                    >
+                      <Icon name="close" className="text-base" />
+                    </button>
+                  </div>
                 ))
               ) : (
                 <Badge tone="neutral">Sin proveedores conectados</Badge>
@@ -484,16 +532,29 @@ export function Integrations() {
                   ? `${linkedInIntegration.display_name ?? "Cuenta de LinkedIn"} · vence ${linkedInIntegration.expires_at ? new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" }).format(new Date(linkedInIntegration.expires_at)) : "sin fecha"}`
                   : "Autorizá una cuenta profesional para publicar contenido aprobado desde SEGEVIA."}
               </p>
-              <Button
-                className="mt-space-md w-full"
-                variant={linkedInIntegration ? "secondary" : "primary"}
-                disabled={!can("admin")}
-                loading={connectLinkedIn.isPending}
-                icon={linkedInIntegration ? "sync" : "link"}
-                onClick={() => connectLinkedIn.mutate()}
-              >
-                {linkedInIntegration ? "Reconectar LinkedIn" : "Conectar LinkedIn"}
-              </Button>
+              <div className="mt-space-md flex gap-2">
+                <Button
+                  className="flex-1"
+                  variant={linkedInIntegration ? "secondary" : "primary"}
+                  disabled={!can("admin")}
+                  loading={connectLinkedIn.isPending}
+                  icon={linkedInIntegration ? "sync" : "link"}
+                  onClick={() => connectLinkedIn.mutate()}
+                >
+                  {linkedInIntegration ? "Reconectar LinkedIn" : "Conectar LinkedIn"}
+                </Button>
+                {linkedInIntegration && (
+                  <Button
+                    variant="danger"
+                    disabled={!can("admin") || disconnect.isPending}
+                    loading={disconnect.isPending}
+                    icon="link_off"
+                    onClick={() => requestDisconnect("linkedin", "LinkedIn")}
+                  >
+                    Desconectar
+                  </Button>
+                )}
+              </div>
               {linkedinError && <p className="mt-2 text-body-sm text-error">{linkedinError}</p>}
             </div>
             {["Instagram", "X", "Facebook", "TikTok"].map((item) => (
@@ -541,15 +602,28 @@ export function Integrations() {
                   ? `${telegramConfig.bot_name}${telegramConfig.bot_username ? ` · @${telegramConfig.bot_username}` : ""} · ${(telegramConfig.authorized_chat_ids ?? []).length} IDs autorizados`
                   : "Configurá un bot propio y definí quién puede escribirle."}
               </p>
-              <Button
-                className="mt-space-md w-full"
-                variant={telegramConfig ? "secondary" : "primary"}
-                disabled={!can("admin")}
-                icon={telegramConfig ? "edit" : "add"}
-                onClick={openTelegram}
-              >
-                {telegramConfig ? "Editar Telegram" : "Integrar Telegram"}
-              </Button>
+              <div className="mt-space-md flex gap-2">
+                <Button
+                  className="flex-1"
+                  variant={telegramConfig ? "secondary" : "primary"}
+                  disabled={!can("admin")}
+                  icon={telegramConfig ? "edit" : "add"}
+                  onClick={openTelegram}
+                >
+                  {telegramConfig ? "Editar Telegram" : "Integrar Telegram"}
+                </Button>
+                {telegramConfig && (
+                  <Button
+                    variant="danger"
+                    disabled={!can("admin") || disconnect.isPending}
+                    loading={disconnect.isPending}
+                    icon="link_off"
+                    onClick={() => requestDisconnect("telegram", "Telegram")}
+                  >
+                    Desconectar
+                  </Button>
+                )}
+              </div>
             </div>
             {["Slack", "WhatsApp Business", "Teams", "SMTP"].map((item) => (
               <div

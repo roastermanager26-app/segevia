@@ -101,7 +101,11 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
               </Button>
               <button
                 type="button"
-                className="rounded-lg bg-[#0f5c52] px-space-md py-2 text-label-md text-white hover:bg-[#0b4a42]"
+                className={`rounded-lg px-space-md py-2 text-label-md text-white ${
+                  confirmation.tone === "error"
+                    ? "bg-[#8b1e2d] hover:bg-[#721624]"
+                    : "bg-[#0f5c52] hover:bg-[#0b4a42]"
+                }`}
                 onClick={() => closeConfirmation(true)}
               >
                 {confirmation.confirmLabel ?? "Aceptar"}
