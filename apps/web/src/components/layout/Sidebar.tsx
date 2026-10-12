@@ -10,13 +10,16 @@ import { Icon, cx } from "../ui";
 export const NAV_ITEMS = [
   { to: "/dashboard", label: "Inicio", icon: "dashboard", end: true },
   { to: "/content-studio", label: "Content Studio", icon: "auto_fix_high" },
-  { to: "/content-studio/nueva-publicacion", label: "Nueva publicación", icon: "post_add" },
   { to: "/inbox", label: "Inbox", icon: "forum" },
   { to: "/agentes", label: "Agentes", icon: "smart_toy" },
   { to: "/knowledge-base", label: "Knowledge Base", icon: "menu_book" },
   { to: "/integraciones", label: "Integraciones", icon: "extension" },
   { to: "/consumos", label: "Consumos", icon: "query_stats" },
   { to: "/configuracion", label: "Configuración", icon: "settings" },
+] as const;
+
+const CONTENT_STUDIO_SUBITEMS = [
+  { to: "/content-studio/nueva-publicacion", label: "Nueva publicación", icon: "post_add" },
 ] as const;
 
 export function useTenantBudget() {
@@ -45,7 +48,9 @@ function BudgetWidget() {
           </span>
           <span className="text-label-sm text-on-surface">IA Supervisada</span>
         </div>
-        <span className="rounded bg-secondary-fixed/50 px-1.5 py-0.5 text-label-sm text-secondary">Activa</span>
+        <span className="rounded bg-secondary-fixed/50 px-1.5 py-0.5 text-label-sm text-secondary">
+          Activa
+        </span>
       </div>
       {isLoading ? (
         <div className="h-10 animate-pulse rounded bg-surface-container" />
@@ -53,11 +58,16 @@ function BudgetWidget() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between text-body-sm text-on-surface-variant">
             <span>Presupuesto mensual</span>
-            <span className="tabular text-code-num text-on-surface">{formatPct(budget.used_pct)}</span>
+            <span className="tabular text-code-num text-on-surface">
+              {formatPct(budget.used_pct)}
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container">
             <div
-              className={cx("h-full rounded-full", pct >= 90 ? "bg-error" : pct >= 75 ? "bg-amber-500" : "bg-primary")}
+              className={cx(
+                "h-full rounded-full",
+                pct >= 90 ? "bg-error" : pct >= 75 ? "bg-amber-500" : "bg-primary",
+              )}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -83,24 +93,46 @@ export function Sidebar() {
         <div className="px-space-md py-space-xs">
           <div className="h-px bg-surface-container" />
         </div>
-        <nav aria-label="Principal" className="flex flex-col gap-space-xs overflow-y-auto px-space-md py-space-sm">
+        <nav
+          aria-label="Principal"
+          className="flex flex-col gap-space-xs overflow-y-auto px-space-md py-space-sm"
+        >
           {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={"end" in item ? item.end : false}
-              className={({ isActive }) =>
-                cx(
-                  "flex items-center gap-space-sm rounded-lg px-space-md py-space-sm text-label-md transition-colors",
-                  isActive
-                    ? "bg-primary text-on-primary shadow-sm"
-                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
-                )
-              }
-            >
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-            </NavLink>
+            <div key={item.to} className="flex flex-col gap-1">
+              <NavLink
+                to={item.to}
+                end={"end" in item ? item.end : false}
+                className={({ isActive }) =>
+                  cx(
+                    "flex items-center gap-space-sm rounded-lg px-space-md py-space-sm text-label-md transition-colors",
+                    isActive
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+                  )
+                }
+              >
+                <Icon name={item.icon} />
+                <span>{item.label}</span>
+              </NavLink>
+              {item.to === "/content-studio" &&
+                CONTENT_STUDIO_SUBITEMS.map((subitem) => (
+                  <NavLink
+                    key={subitem.to}
+                    to={subitem.to}
+                    className={({ isActive }) =>
+                      cx(
+                        "ml-5 flex items-center gap-space-sm rounded-lg px-space-md py-2 text-label-md transition-colors",
+                        isActive
+                          ? "bg-primary-fixed text-primary font-semibold"
+                          : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+                      )
+                    }
+                  >
+                    <Icon name={subitem.icon} />
+                    <span>{subitem.label}</span>
+                  </NavLink>
+                ))}
+            </div>
           ))}
         </nav>
       </div>

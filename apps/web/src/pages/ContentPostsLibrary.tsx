@@ -255,11 +255,16 @@ export function ContentPostsLibrary() {
             Gestioná los borradores y publicaciones de {tenant.name}.
           </p>
         </div>
-        <Link to="/content-studio">
-          <Button variant="secondary" icon="insights">
-            Ver tendencias
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/content-studio">
+            <Button variant="secondary" icon="insights">
+              Ver tendencias
+            </Button>
+          </Link>
+          <Link to="/content-studio/nueva-publicacion">
+            <Button icon="post_add">Nueva publicación</Button>
+          </Link>
+        </div>
       </div>
       <div className="flex gap-2 border-b border-hairline">
         <Link
