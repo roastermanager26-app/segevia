@@ -51,6 +51,10 @@ export function ContentPostsLibrary() {
   const { confirm, notify } = useFeedback();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Status | "all">("all");
+  const [postSort, setPostSort] = useState<
+    "title" | "topic" | "status" | "date" | "language" | "channel"
+  >("date");
+  const [postSortDirection, setPostSortDirection] = useState<"asc" | "desc">("desc");
   const [convertPost, setConvertPost] = useState<Post | null>(null);
   const [convertChannel, setConvertChannel] = useState<Channel>("linkedin");
   const [changeLanguagePost, setChangeLanguagePost] = useState<Post | null>(null);
@@ -209,6 +213,35 @@ export function ContentPostsLibrary() {
           .toLocaleLowerCase()
           .includes(search.trim().toLocaleLowerCase())),
   );
+  const togglePostSort = (next: typeof postSort) => {
+    if (next === postSort)
+      setPostSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+    else {
+      setPostSort(next);
+      setPostSortDirection(next === "date" ? "desc" : "asc");
+    }
+  };
+  const sortedPosts = [...filtered].sort((left, right) => {
+    const values: Record<typeof postSort, [string, string]> = {
+      title: [left.title, right.title],
+      topic: [left.topic?.name ?? "", right.topic?.name ?? ""],
+      status: [statusLabel[left.status], statusLabel[right.status]],
+      date: [left.created_at, right.created_at],
+      language: [languageLabel[left.language], languageLabel[right.language]],
+      channel: [channelLabel[left.channel], channelLabel[right.channel]],
+    };
+    const result = values[postSort][0].localeCompare(values[postSort][1], "es", {
+      numeric: true,
+      sensitivity: "base",
+    });
+    return postSortDirection === "asc" ? result : -result;
+  });
+  const postSortIcon = (column: typeof postSort) =>
+    postSort !== column
+      ? "unfold_more"
+      : postSortDirection === "asc"
+        ? "arrow_upward"
+        : "arrow_downward";
 
   return (
     <div className="flex flex-col gap-space-lg pb-12">
@@ -288,17 +321,65 @@ export function ContentPostsLibrary() {
             <table className="w-full min-w-[980px] border-separate border-spacing-0 text-left">
               <thead>
                 <tr className="text-label-sm text-on-surface-variant">
-                  <th className="border-b border-hairline px-3 py-3">Publicación</th>
-                  <th className="border-b border-hairline px-3 py-3">Tema</th>
-                  <th className="border-b border-hairline px-3 py-3">Estado</th>
-                  <th className="border-b border-hairline px-3 py-3">Fecha</th>
-                  <th className="border-b border-hairline px-3 py-3">Idioma</th>
-                  <th className="border-b border-hairline px-3 py-3">Red</th>
+                  <th className="border-b border-hairline px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePostSort("title")}
+                      className="inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      Publicación <Icon name={postSortIcon("title")} className="text-base" />
+                    </button>
+                  </th>
+                  <th className="border-b border-hairline px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePostSort("topic")}
+                      className="inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      Tema <Icon name={postSortIcon("topic")} className="text-base" />
+                    </button>
+                  </th>
+                  <th className="border-b border-hairline px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePostSort("status")}
+                      className="inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      Estado <Icon name={postSortIcon("status")} className="text-base" />
+                    </button>
+                  </th>
+                  <th className="border-b border-hairline px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePostSort("date")}
+                      className="inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      Fecha <Icon name={postSortIcon("date")} className="text-base" />
+                    </button>
+                  </th>
+                  <th className="border-b border-hairline px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePostSort("language")}
+                      className="inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      Idioma <Icon name={postSortIcon("language")} className="text-base" />
+                    </button>
+                  </th>
+                  <th className="border-b border-hairline px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePostSort("channel")}
+                      className="inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      Red <Icon name={postSortIcon("channel")} className="text-base" />
+                    </button>
+                  </th>
                   <th className="border-b border-hairline px-3 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((post) => (
+                {sortedPosts.map((post) => (
                   <tr key={post.id} className="hover:bg-surface-container-low">
                     <td className="border-b border-hairline px-3 py-4">
                       <Link

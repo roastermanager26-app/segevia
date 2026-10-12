@@ -83,6 +83,10 @@ export function ContentStudio() {
   const [findingSearch, setFindingSearch] = useState("");
   const [findingTopic, setFindingTopic] = useState("all");
   const [findingPage, setFindingPage] = useState(1);
+  const [findingSort, setFindingSort] = useState<
+    "title" | "topic" | "source" | "provider" | "date" | "expires"
+  >("date");
+  const [findingSortDirection, setFindingSortDirection] = useState<"asc" | "desc">("desc");
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [draftOptions, setDraftOptions] = useState<DraftOptions | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
@@ -158,6 +162,12 @@ export function ContentStudio() {
       if (data?.error) throw new Error(data.error);
       return data as {
         inserted: number;
+        topics?: Array<{
+          topic: string;
+          tavily: number;
+          searchapi: number;
+          serpapi: number;
+        }>;
         providerErrors?: Array<{ topic: string; provider: string; error: string }>;
       };
     },
@@ -277,9 +287,41 @@ export function ContentStudio() {
           .includes(search))
     );
   });
-  const totalPages = Math.max(1, Math.ceil(filtered.length / FINDINGS_PER_PAGE));
+  const toggleFindingSort = (next: typeof findingSort) => {
+    if (next === findingSort) {
+      setFindingSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+    } else {
+      setFindingSort(next);
+      setFindingSortDirection(next === "date" || next === "expires" ? "desc" : "asc");
+    }
+    setFindingPage(1);
+  };
+  const sortedFindings = [...filtered].sort((left, right) => {
+    const topicName = (finding: Finding) =>
+      topics.find((topic) => topic.id === finding.topic_id)?.name ?? "";
+    const values: Record<typeof findingSort, [string, string]> = {
+      title: [left.title, right.title],
+      topic: [topicName(left), topicName(right)],
+      source: [left.source_name ?? "", right.source_name ?? ""],
+      provider: [providerLabel[left.provider], providerLabel[right.provider]],
+      date: [left.published_at ?? left.discovered_at, right.published_at ?? right.discovered_at],
+      expires: [left.expires_at, right.expires_at],
+    };
+    const result = values[findingSort][0].localeCompare(values[findingSort][1], "es", {
+      numeric: true,
+      sensitivity: "base",
+    });
+    return findingSortDirection === "asc" ? result : -result;
+  });
+  const sortIcon = (column: typeof findingSort) =>
+    findingSort !== column
+      ? "unfold_more"
+      : findingSortDirection === "asc"
+        ? "arrow_upward"
+        : "arrow_downward";
+  const totalPages = Math.max(1, Math.ceil(sortedFindings.length / FINDINGS_PER_PAGE));
   const currentPage = Math.min(findingPage, totalPages);
-  const pageFindings = filtered.slice(
+  const pageFindings = sortedFindings.slice(
     (currentPage - 1) * FINDINGS_PER_PAGE,
     currentPage * FINDINGS_PER_PAGE,
   );
@@ -415,10 +457,26 @@ export function ContentStudio() {
         </div>
         {discoveryError && <p className="text-body-sm text-error">{discoveryError}</p>}
         {discover.data && (
-          <p className="rounded-lg bg-secondary-fixed/30 px-3 py-2 text-body-sm text-secondary">
-            Se agregaron {discover.data.inserted} hallazgos nuevos. Los artículos existentes no se
-            duplican.
-          </p>
+          <div className="rounded-lg bg-secondary-fixed/30 px-3 py-2 text-body-sm text-secondary">
+            <p>
+              Se agregaron {discover.data.inserted} hallazgos nuevos. Los artículos existentes no se
+              duplican.
+            </p>
+            {discover.data.topics?.map((result) => (
+              <p key={result.topic} className="mt-1 text-on-surface-variant">
+                {result.topic}: Tavily {result.tavily} · SearchApi.io {result.searchapi} · SerpApi{" "}
+                {result.serpapi}
+              </p>
+            ))}
+            {discover.data.providerErrors?.map((providerError) => (
+              <p
+                key={`${providerError.topic}-${providerError.provider}`}
+                className="mt-1 text-error"
+              >
+                {providerError.topic} · {providerError.provider}: {providerError.error}
+              </p>
+            ))}
+          </div>
         )}
         <div className="grid gap-space-md rounded-xl bg-surface-container-low p-space-md md:grid-cols-[minmax(0,1fr)_16rem]">
           <Field label="Buscar en tendencias">
@@ -458,12 +516,60 @@ export function ContentStudio() {
               <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-left">
                 <thead>
                   <tr className="text-label-sm text-on-surface-variant">
-                    <th className="border-b border-hairline px-3 py-3">Tendencia</th>
-                    <th className="border-b border-hairline px-3 py-3">Tema</th>
-                    <th className="border-b border-hairline px-3 py-3">Fuente</th>
-                    <th className="border-b border-hairline px-3 py-3">Origen</th>
-                    <th className="border-b border-hairline px-3 py-3">Fecha</th>
-                    <th className="border-b border-hairline px-3 py-3">Vence</th>
+                    <th className="border-b border-hairline px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFindingSort("title")}
+                        className="inline-flex items-center gap-1 hover:text-primary"
+                      >
+                        Tendencia <Icon name={sortIcon("title")} className="text-base" />
+                      </button>
+                    </th>
+                    <th className="border-b border-hairline px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFindingSort("topic")}
+                        className="inline-flex items-center gap-1 hover:text-primary"
+                      >
+                        Tema <Icon name={sortIcon("topic")} className="text-base" />
+                      </button>
+                    </th>
+                    <th className="border-b border-hairline px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFindingSort("source")}
+                        className="inline-flex items-center gap-1 hover:text-primary"
+                      >
+                        Fuente <Icon name={sortIcon("source")} className="text-base" />
+                      </button>
+                    </th>
+                    <th className="border-b border-hairline px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFindingSort("provider")}
+                        className="inline-flex items-center gap-1 hover:text-primary"
+                      >
+                        Origen <Icon name={sortIcon("provider")} className="text-base" />
+                      </button>
+                    </th>
+                    <th className="border-b border-hairline px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFindingSort("date")}
+                        className="inline-flex items-center gap-1 hover:text-primary"
+                      >
+                        Fecha <Icon name={sortIcon("date")} className="text-base" />
+                      </button>
+                    </th>
+                    <th className="border-b border-hairline px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFindingSort("expires")}
+                        className="inline-flex items-center gap-1 hover:text-primary"
+                      >
+                        Vence <Icon name={sortIcon("expires")} className="text-base" />
+                      </button>
+                    </th>
                     <th className="border-b border-hairline px-3 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
