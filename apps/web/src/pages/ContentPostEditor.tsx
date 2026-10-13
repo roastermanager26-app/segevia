@@ -6,7 +6,7 @@ import { db } from "../lib/supabase";
 import { functionErrorMessage } from "../lib/functionError";
 import { useFeedback } from "../components/FeedbackProvider";
 import { CHANNEL_CHARACTER_LIMITS, type ContentChannel } from "../lib/contentRules";
-import { Badge, Button, Card, Field, inputClass } from "../components/ui";
+import { Badge, Button, Card, Field, Icon, inputClass } from "../components/ui";
 
 type EditorKey = "title" | "subtitle" | "body" | "company_help" | "call_to_action" | "image_prompt";
 type Post = {
@@ -125,6 +125,34 @@ export function ContentPostEditor() {
     },
     onError: (error) =>
       setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar."),
+  });
+  const updateImageAttribution = useMutation({
+    mutationFn: async (imageCreatedByAi: boolean) => {
+      if (!post) return;
+      const { error } = await db()
+        .from("content_posts")
+        .update({ image_created_by_ai: imageCreatedByAi })
+        .eq("id", post.id)
+        .eq("tenant_id", tenant.id);
+      if (error) throw error;
+    },
+    onSuccess: async (_, imageCreatedByAi) => {
+      setLocalPost((current) =>
+        current ? { ...current, image_created_by_ai: imageCreatedByAi } : current,
+      );
+      notify(
+        imageCreatedByAi
+          ? "La imagen quedó marcada como creada con IA."
+          : "La imagen ya no está marcada como creada con IA.",
+      );
+      await queryClient.invalidateQueries({ queryKey: ["content-post", tenant.id, postId] });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "No se pudo guardar la atribución de la imagen.";
+      setErrorMessage(message);
+      notify(message, "error");
+    },
   });
   const remove = useMutation({
     mutationFn: async () => {
@@ -364,13 +392,31 @@ export function ContentPostEditor() {
               onChange={(event) => void uploadImage(event.target.files?.[0])}
             />
           </Field>
-          <label>
-            <input
-              type="checkbox"
-              checked={post.image_created_by_ai}
-              onChange={(event) => set("image_created_by_ai", event.target.checked)}
-            />{" "}
-            Imagen creada con IA
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-hairline bg-surface-container-low px-3 py-2.5 text-body-sm">
+            <span>
+              <span className="block font-semibold text-on-surface">Imagen creada con IA</span>
+              <span className="text-on-surface-variant">
+                Se guarda automáticamente y se identifica en la vista previa.
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              {post.image_created_by_ai && (
+                <Badge tone="ai" icon="auto_awesome">
+                  Marcada
+                </Badge>
+              )}
+              <input
+                type="checkbox"
+                checked={post.image_created_by_ai}
+                disabled={!can("admin") || updateImageAttribution.isPending}
+                onChange={(event) => {
+                  const imageCreatedByAi = event.target.checked;
+                  set("image_created_by_ai", imageCreatedByAi);
+                  updateImageAttribution.mutate(imageCreatedByAi);
+                }}
+                className="h-5 w-5 accent-primary disabled:cursor-not-allowed"
+              />
+            </span>
           </label>
         </Card>
         <Card>
@@ -384,8 +430,22 @@ export function ContentPostEditor() {
             <p className="font-semibold">{tenant.name}</p>
             <p className="text-body-sm">{channelLabels[post.channel]} · Ahora</p>
             <div className="mt-space-lg whitespace-pre-wrap">{preview}</div>
+            {post.image_created_by_ai && (
+              <div className="mt-space-md">
+                <Badge tone="ai" icon="auto_awesome">
+                  Imagen creada con IA
+                </Badge>
+              </div>
+            )}
             {imagePreview && (
-              <img className="mt-space-lg w-full rounded-xl" src={imagePreview} alt="Publicación" />
+              <div className="relative mt-space-lg">
+                <img className="w-full rounded-xl" src={imagePreview} alt="Publicación" />
+                {post.image_created_by_ai && (
+                  <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-slate-950/80 px-2 py-1 text-label-sm text-white">
+                    <Icon name="auto_awesome" className="text-sm" /> Creada con IA
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </Card>
