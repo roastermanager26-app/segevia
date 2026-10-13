@@ -249,6 +249,7 @@ export function ContentStudio() {
     onSuccess: (postId) => {
       setDraftOptions(null);
       setDraftError(null);
+      refreshFindings();
       navigate(`/content-studio/publicaciones/${postId}`);
     },
     onError: (error) =>

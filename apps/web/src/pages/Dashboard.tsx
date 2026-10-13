@@ -19,6 +19,12 @@ interface AuditLogRecord {
   created_at: string;
 }
 
+type ContentMetrics = {
+  published: number;
+  pendingApproval: number;
+  availableFindings: number;
+};
+
 export function Dashboard() {
   const { notify } = useFeedback();
   const navigate = useNavigate();
@@ -42,6 +48,36 @@ export function Dashboard() {
         .limit(10);
       if (error) throw error;
       return (data ?? []) as AuditLogRecord[];
+    },
+  });
+  const { data: contentMetrics, isLoading: loadingContentMetrics } = useQuery({
+    queryKey: ["tenant", tenant.id, "content-metrics"],
+    queryFn: async () => {
+      const [published, pendingApproval, availableFindings] = await Promise.all([
+        db()
+          .from("content_posts")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("status", "published"),
+        db()
+          .from("content_posts")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("status", "draft"),
+        db()
+          .from("content_findings")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .eq("status", "active")
+          .gt("expires_at", new Date().toISOString()),
+      ]);
+      const error = published.error ?? pendingApproval.error ?? availableFindings.error;
+      if (error) throw error;
+      return {
+        published: published.count ?? 0,
+        pendingApproval: pendingApproval.count ?? 0,
+        availableFindings: availableFindings.count ?? 0,
+      } satisfies ContentMetrics;
     },
   });
 
@@ -113,14 +149,19 @@ export function Dashboard() {
         {/* Primary Metric Strip (4 Columns) */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-gutter">
           {/* KPI 1: Pendiente de Aprobación */}
-          <Card className="flex flex-col justify-between gap-space-md">
+          <Card
+            className="flex cursor-pointer flex-col justify-between gap-space-md"
+            onClick={() => navigate("/content-studio/publicaciones")}
+          >
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">
                   Pendiente de Aprobación
                 </span>
                 <span className="font-headline text-headline-md font-bold text-on-surface">
-                  {isDemo ? "6 publicaciones" : "0 publicaciones"}
+                  {loadingContentMetrics
+                    ? "—"
+                    : `${contentMetrics?.pendingApproval ?? 0} publicaciones`}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700">
@@ -129,7 +170,7 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col gap-2">
               <div>
-                {isDemo ? (
+                {(contentMetrics?.pendingApproval ?? 0) > 0 ? (
                   <Badge tone="review" icon="bolt">
                     Requiere revisión humana
                   </Badge>
@@ -140,79 +181,77 @@ export function Dashboard() {
                 )}
               </div>
               <p className="text-body-sm text-on-surface-variant leading-snug">
-                {isDemo
-                  ? "3 LinkedIn · 3 Instagram · Próxima salida hoy"
+                {(contentMetrics?.pendingApproval ?? 0) > 0
+                  ? "Borradores listos para que los revises y apruebes"
                   : "Sin borradores pendientes de revisión humana"}
               </p>
             </div>
           </Card>
 
-          {/* KPI 2: Conversaciones Activas */}
-          <Card className="flex flex-col justify-between gap-space-md">
+          {/* KPI 2: Publicaciones realizadas */}
+          <Card
+            className="flex cursor-pointer flex-col justify-between gap-space-md"
+            onClick={() => navigate("/content-studio/publicaciones")}
+          >
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">
-                  Conversaciones Activas
+                  Publicaciones realizadas
                 </span>
                 <span className="font-headline text-headline-md font-bold text-on-surface">
-                  {isDemo ? "42 en curso" : "0 en curso"}
+                  {loadingContentMetrics ? "—" : `${contentMetrics?.published ?? 0} publicaciones`}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary">
-                <Icon name="forum" className="text-xl" />
+                <Icon name="publish" className="text-xl" />
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <div>
-                {isDemo ? (
+                {(contentMetrics?.published ?? 0) > 0 ? (
                   <Badge tone="verified" icon="trending_up">
-                    +18% vs ayer
+                    Publicadas
                   </Badge>
                 ) : (
                   <Badge tone="neutral" icon="sync">
-                    Canales listos
+                    Aún no publicadas
                   </Badge>
                 )}
               </div>
               <p className="text-body-sm text-on-surface-variant leading-snug">
-                {isDemo
-                  ? "35 atendidas por IA · 7 con operador humano"
-                  : "Conecta WhatsApp o Instagram en Integraciones"}
+                Publicaciones marcadas como enviadas o publicadas desde SEGEVIA
               </p>
             </div>
           </Card>
 
-          {/* KPI 3: Leads Calificados */}
-          <Card className="flex flex-col justify-between gap-space-md">
+          {/* KPI 3: Tendencias disponibles */}
+          <Card
+            className="flex cursor-pointer flex-col justify-between gap-space-md"
+            onClick={() => navigate("/content-studio")}
+          >
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">
-                  Leads Calificados (Mes)
+                  Tendencias detectadas
                 </span>
                 <span className="font-headline text-headline-md font-bold text-on-surface">
-                  {isDemo ? "184 leads" : "0 leads"}
+                  {loadingContentMetrics
+                    ? "—"
+                    : `${contentMetrics?.availableFindings ?? 0} tendencias`}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary">
-                <Icon name="verified" className="text-xl" />
+                <Icon name="topic" className="text-xl" />
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <div>
-                {isDemo ? (
-                  <Badge tone="human" icon="task_alt">
-                    Objetivo 85% alcanzado
-                  </Badge>
-                ) : (
-                  <Badge tone="neutral" icon="tune">
-                    Pipeline listo
-                  </Badge>
-                )}
+                <Badge tone="ai" icon="auto_awesome">
+                  Disponibles para contenido
+                </Badge>
               </div>
               <p className="text-body-sm text-on-surface-variant leading-snug">
-                {isDemo
-                  ? "Tasa de conversión calificada: 28.4%"
-                  : "Los prospectos calificados por IA se listarán aquí"}
+                Las tendencias usadas quedan fuera de la lista para evitar reutilizarlas.
               </p>
             </div>
           </Card>
