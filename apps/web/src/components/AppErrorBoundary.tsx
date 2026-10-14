@@ -1,7 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Icon } from "./ui";
 
-type Props = { children: ReactNode };
+type Props = {
+  children: ReactNode;
+  onError?: (error: Error) => void;
+};
 type State = { error: Error | null };
 
 /** Evita que un dato inesperado deje la aplicación completa sin interfaz. */
@@ -14,6 +17,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Error de interfaz recuperable", error, info);
+    this.props.onError?.(error);
   }
 
   render() {

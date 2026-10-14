@@ -22,6 +22,7 @@ import { Usage } from "./pages/Usage";
 import { Settings } from "./pages/Settings";
 import { FeedbackProvider } from "./components/FeedbackProvider";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import { ClientErrorReporter } from "./components/ClientErrorReporter";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,28 +57,30 @@ export function App() {
 
                     {/* Rutas que requieren organización activa y usan el shell */}
                     <Route element={<RequireTenant />}>
-                      <Route element={<AppShell />}>
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/app" element={<Navigate to="/dashboard" replace />} />
-                        <Route path="/content-studio" element={<ContentStudio />} />
-                        <Route
-                          path="/content-studio/publicaciones"
-                          element={<ContentPostsLibrary />}
-                        />
-                        <Route
-                          path="/content-studio/nueva-publicacion"
-                          element={<ManualContentPost />}
-                        />
-                        <Route
-                          path="/content-studio/publicaciones/:postId"
-                          element={<ContentPostEditor />}
-                        />
-                        <Route path="/inbox" element={<Inbox />} />
-                        <Route path="/agentes" element={<Agents />} />
-                        <Route path="/knowledge-base" element={<KnowledgeBase />} />
-                        <Route path="/integraciones" element={<Integrations />} />
-                        <Route path="/consumos" element={<Usage />} />
-                        <Route path="/configuracion" element={<Settings />} />
+                      <Route element={<ClientErrorReporter />}>
+                        <Route element={<AppShell />}>
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+                          <Route path="/content-studio" element={<ContentStudio />} />
+                          <Route
+                            path="/content-studio/publicaciones"
+                            element={<ContentPostsLibrary />}
+                          />
+                          <Route
+                            path="/content-studio/nueva-publicacion"
+                            element={<ManualContentPost />}
+                          />
+                          <Route
+                            path="/content-studio/publicaciones/:postId"
+                            element={<ContentPostEditor />}
+                          />
+                          <Route path="/inbox" element={<Inbox />} />
+                          <Route path="/agentes" element={<Agents />} />
+                          <Route path="/knowledge-base" element={<KnowledgeBase />} />
+                          <Route path="/integraciones" element={<Integrations />} />
+                          <Route path="/consumos" element={<Usage />} />
+                          <Route path="/configuracion" element={<Settings />} />
+                        </Route>
                       </Route>
                     </Route>
                   </Route>
