@@ -99,7 +99,12 @@ export function ContentStudio() {
         .eq("tenant_id", tenant.id)
         .order("created_at");
       if (error) throw error;
-      return (data ?? []) as Topic[];
+      return (data ?? []).map((topic) => ({
+        ...topic,
+        keywords: Array.isArray(topic.keywords)
+          ? topic.keywords.filter((keyword): keyword is string => typeof keyword === "string")
+          : [],
+      })) as Topic[];
     },
   });
   const { data: findings = [], isLoading: loadingFindings } = useQuery({
@@ -115,7 +120,14 @@ export function ContentStudio() {
         .gt("expires_at", new Date().toISOString())
         .order("discovered_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Finding[];
+      return (data ?? []).map((finding) => ({
+        ...finding,
+        title: typeof finding.title === "string" ? finding.title : "Sin título",
+        summary: typeof finding.summary === "string" ? finding.summary : "Sin resumen disponible.",
+        relevance_reason:
+          typeof finding.relevance_reason === "string" ? finding.relevance_reason : "",
+        source_name: typeof finding.source_name === "string" ? finding.source_name : null,
+      })) as Finding[];
     },
   });
   const activeTopics = topics.filter((topic) => topic.is_active);
