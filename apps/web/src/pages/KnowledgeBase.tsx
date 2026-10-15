@@ -141,22 +141,11 @@ export function KnowledgeBase() {
         .select("id")
         .single();
       if (insertError) throw insertError;
-      if (kind === "url") {
-        const { data: result, error: invokeError } = await db().functions.invoke(
-          "ingest-kb-source",
-          { body: { tenantId: tenant.id, sourceId: data.id } },
-        );
-        if (invokeError) throw invokeError;
-        if (result?.error) throw new Error(result.error);
-      } else {
-        const { error: jobError } = await db().rpc("enqueue_job", {
-          p_tenant_id: tenant.id,
-          p_type: "kb.ingest_source",
-          p_payload: { sourceId: data.id },
-          p_idempotency_key: `kb.ingest:${data.id}`,
-        });
-        if (jobError) throw jobError;
-      }
+      const { data: result, error: invokeError } = await db().functions.invoke("ingest-kb-source", {
+        body: { tenantId: tenant.id, sourceId: data.id },
+      });
+      if (invokeError) throw invokeError;
+      if (result?.error) throw new Error(result.error);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["kb-sources", tenant.id] });
@@ -213,12 +202,7 @@ export function KnowledgeBase() {
   });
   useEffect(() => {
     for (const source of sources) {
-      if (
-        source.kind !== "url" ||
-        source.status !== "processing" ||
-        autoProcessed.current.has(source.id)
-      )
-        continue;
+      if (source.status !== "processing" || autoProcessed.current.has(source.id)) continue;
       autoProcessed.current.add(source.id);
       void db()
         .functions.invoke("ingest-kb-source", {

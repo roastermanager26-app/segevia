@@ -17,7 +17,7 @@ interface UsageEventRecord {
   unit_type: string;
   units: number;
   cost_usd: string | number;
-  created_at: string;
+  occurred_at: string;
 }
 
 const DEMO_USAGE_EVENTS: UsageEventRecord[] = [
@@ -30,7 +30,7 @@ const DEMO_USAGE_EVENTS: UsageEventRecord[] = [
     unit_type: "output_tokens",
     units: 120000,
     cost_usd: 12.4,
-    created_at: new Date().toISOString(),
+    occurred_at: new Date().toISOString(),
   },
   {
     id: 2,
@@ -41,7 +41,7 @@ const DEMO_USAGE_EVENTS: UsageEventRecord[] = [
     unit_type: "image",
     units: 40,
     cost_usd: 9.6,
-    created_at: new Date(Date.now() - 3600000).toISOString(),
+    occurred_at: new Date(Date.now() - 3600000).toISOString(),
   },
   {
     id: 3,
@@ -52,7 +52,7 @@ const DEMO_USAGE_EVENTS: UsageEventRecord[] = [
     unit_type: "search",
     units: 300,
     cost_usd: 4.5,
-    created_at: new Date(Date.now() - 7200000).toISOString(),
+    occurred_at: new Date(Date.now() - 7200000).toISOString(),
   },
 ];
 
@@ -65,18 +65,25 @@ export function Usage() {
   const isDemo = isDemoTenant(tenant, session?.user?.email);
 
   // Consulta de eventos reales de uso desde Supabase
-  const { data: realEvents = [], isLoading: loadingEvents } = useQuery({
+  const {
+    data: realEvents = [],
+    isLoading: loadingEvents,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useQuery({
     queryKey: ["tenant", tenant.id, "usage-events"],
     queryFn: async () => {
       const { data, error } = await db()
         .from("usage_events")
         .select("*")
         .eq("tenant_id", tenant.id)
-        .order("created_at", { ascending: false })
+        .order("occurred_at", { ascending: false })
         .limit(50);
       if (error) throw error;
       return (data ?? []) as UsageEventRecord[];
     },
+    // An error de esquema o permisos no se resuelve reintentando en bucle.
+    retry: false,
   });
 
   const displayEvents = isDemo && realEvents.length === 0 ? DEMO_USAGE_EVENTS : realEvents;
@@ -174,7 +181,22 @@ export function Usage() {
           <span className="text-body-sm text-outline">Filtrado por: {tenant.name}</span>
         </div>
 
-        {loadingEvents ? (
+        {eventsError ? (
+          <div className="py-8 px-4 flex flex-col items-center justify-center text-center gap-3">
+            <Icon name="error" className="text-2xl text-error" />
+            <div>
+              <h4 className="font-headline text-headline-sm font-bold text-on-surface">
+                No se pudo cargar el historial de consumos
+              </h4>
+              <p className="text-body-sm text-on-surface-variant mt-1">
+                Revisá tu conexión e intentá nuevamente.
+              </p>
+            </div>
+            <Button variant="secondary" icon="refresh" onClick={() => void refetchEvents()}>
+              Reintentar
+            </Button>
+          </div>
+        ) : loadingEvents ? (
           <div className="py-8 text-center text-body-sm text-on-surface-variant">
             Cargando historial de consumos...
           </div>
