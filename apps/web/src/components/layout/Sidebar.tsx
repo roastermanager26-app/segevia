@@ -18,10 +18,6 @@ export const NAV_ITEMS = [
   { to: "/configuracion", label: "Configuración", icon: "settings" },
 ] as const;
 
-const CONTENT_STUDIO_SUBITEMS = [
-  { to: "/content-studio/nueva-publicacion", label: "Nueva publicación", icon: "post_add" },
-] as const;
-
 export function useTenantBudget() {
   const { tenant } = useActiveTenant();
   return useQuery({
@@ -98,41 +94,22 @@ export function Sidebar() {
           className="flex flex-col gap-space-xs overflow-y-auto px-space-md py-space-sm"
         >
           {NAV_ITEMS.map((item) => (
-            <div key={item.to} className="flex flex-col gap-1">
-              <NavLink
-                to={item.to}
-                end={"end" in item ? item.end : false}
-                className={({ isActive }) =>
-                  cx(
-                    "flex items-center gap-space-sm rounded-lg px-space-md py-space-sm text-label-md transition-colors",
-                    isActive
-                      ? "bg-primary text-on-primary shadow-sm"
-                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
-                  )
-                }
-              >
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-              </NavLink>
-              {item.to === "/content-studio" &&
-                CONTENT_STUDIO_SUBITEMS.map((subitem) => (
-                  <NavLink
-                    key={subitem.to}
-                    to={subitem.to}
-                    className={({ isActive }) =>
-                      cx(
-                        "ml-5 flex items-center gap-space-sm rounded-lg px-space-md py-2 text-label-md transition-colors",
-                        isActive
-                          ? "bg-primary-fixed text-primary font-semibold"
-                          : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
-                      )
-                    }
-                  >
-                    <Icon name={subitem.icon} />
-                    <span>{subitem.label}</span>
-                  </NavLink>
-                ))}
-            </div>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={"end" in item ? item.end : false}
+              className={({ isActive }) =>
+                cx(
+                  "flex items-center gap-space-sm rounded-lg px-space-md py-space-sm text-label-md transition-colors",
+                  isActive
+                    ? "bg-primary text-on-primary shadow-sm"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+                )
+              }
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+            </NavLink>
           ))}
         </nav>
       </div>
