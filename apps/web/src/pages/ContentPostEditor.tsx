@@ -56,6 +56,7 @@ export function ContentPostEditor() {
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [history, setHistory] = useState<Post[]>([]);
   const activeInput = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const activeKey = useRef<EditorKey>("body");
 
@@ -102,8 +103,21 @@ export function ContentPostEditor() {
       .then(({ data }) => setImagePreview(data?.signedUrl ?? null));
   }, [post?.image_url]);
 
+  useEffect(() => {
+    setHistory([]);
+  }, [postId]);
+
   const set = <Key extends keyof Post>(key: Key, value: Post[Key]) => {
-    if (post) setLocalPost({ ...post, [key]: value });
+    if (!post) return;
+    setHistory((current) => [...current.slice(-49), post]);
+    setLocalPost({ ...post, [key]: value });
+  };
+  const undoLastChange = () => {
+    setHistory((current) => {
+      const previous = current.at(-1);
+      if (previous) setLocalPost(previous);
+      return current.slice(0, -1);
+    });
   };
   const save = useMutation({
     mutationFn: async (status?: Post["status"]) => {
@@ -244,7 +258,46 @@ export function ContentPostEditor() {
     const end = input.selectionEnd ?? start;
     const value = String(post[activeKey.current]);
     set(activeKey.current, `${value.slice(0, start)}${emoji}${value.slice(end)}`);
+    requestAnimationFrame(() =>
+      input.setSelectionRange(start + emoji.length, start + emoji.length),
+    );
   };
+  const addBullets = () => {
+    if (!post || !activeInput.current) return;
+    const input = activeInput.current;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? start;
+    const key = activeKey.current;
+    const value = String(post[key]);
+    const blockStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    const nextBreak = value.indexOf("\n", end);
+    const blockEnd = nextBreak === -1 ? value.length : nextBreak;
+    const bulletBlock = value
+      .slice(blockStart, blockEnd)
+      .split("\n")
+      .map((line) => (line.trimStart().startsWith("• ") ? line : `• ${line}`))
+      .join("\n");
+    set(key, `${value.slice(0, blockStart)}${bulletBlock}${value.slice(blockEnd)}`);
+    requestAnimationFrame(() =>
+      input.setSelectionRange(blockStart, blockStart + bulletBlock.length),
+    );
+  };
+
+  useEffect(() => {
+    const handleUndoShortcut = (event: KeyboardEvent) => {
+      if (
+        activeInput.current &&
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "z" &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        undoLastChange();
+      }
+    };
+    window.addEventListener("keydown", handleUndoShortcut);
+    return () => window.removeEventListener("keydown", handleUndoShortcut);
+  });
   const uploadImage = async (file?: File) => {
     if (!file) return;
     if (
@@ -345,6 +398,9 @@ export function ContentPostEditor() {
             onBold={() => formatSelection("bold")}
             onItalic={() => formatSelection("italic")}
             onEmoji={insertEmoji}
+            onBullets={addBullets}
+            onUndo={undoLastChange}
+            canUndo={history.length > 0}
           />
           <Field label="Desarrollo">
             <textarea
@@ -498,29 +554,71 @@ function TextTools({
   onBold,
   onItalic,
   onEmoji,
+  onBullets,
+  onUndo,
+  canUndo,
 }: {
   onBold: () => void;
   onItalic: () => void;
   onEmoji: (emoji: string) => void;
+  onBullets: () => void;
+  onUndo: () => void;
+  canUndo: boolean;
 }) {
+  const emojis = [
+    "✨",
+    "💡",
+    "🚀",
+    "✅",
+    "📈",
+    "🤖",
+    "🔥",
+    "🎯",
+    "📌",
+    "💬",
+    "🌟",
+    "🙌",
+    "👋",
+    "⚡",
+    "🔎",
+    "💼",
+    "📊",
+    "🧠",
+    "🛡️",
+    "🌐",
+    "⏱️",
+    "🎉",
+    "👉",
+    "👇",
+  ];
   return (
-    <div className="flex flex-wrap gap-2 rounded-xl bg-surface-container-low p-3">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-container-low p-3">
       <Button variant="secondary" onClick={onBold}>
         𝐁 Negrita
       </Button>
       <Button variant="secondary" onClick={onItalic}>
         𝘐 Cursiva
       </Button>
-      {["✨", "💡", "🚀", "✅", "📈", "🤖"].map((emoji) => (
-        <button
-          key={emoji}
-          type="button"
-          onClick={() => onEmoji(emoji)}
-          className="rounded-lg border border-hairline px-2"
-        >
-          {emoji}
-        </button>
-      ))}
+      <Button variant="secondary" icon="format_list_bulleted" onClick={onBullets}>
+        Viñetas
+      </Button>
+      <Button variant="secondary" icon="undo" disabled={!canUndo} onClick={onUndo}>
+        Deshacer
+      </Button>
+      <span className="hidden h-6 w-px bg-hairline sm:block" aria-hidden="true" />
+      <div className="flex flex-wrap gap-1" aria-label="Emoticones">
+        {emojis.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onEmoji(emoji)}
+            className="rounded-lg border border-hairline px-1.5 py-1 text-base hover:bg-white"
+            title={`Agregar ${emoji}`}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
